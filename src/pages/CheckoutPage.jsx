@@ -20,36 +20,68 @@ function CheckoutPage() {
     0
   );
 
-  // Detect location and autofill address
   const handleUseLocation = async () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported in this browser.");
-      return;
-    }
+  if (!navigator.geolocation) {
+    toast.error("Geolocation not supported.");
+    return;
+  }
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-          const data = await res.json();
-          if (data?.display_name) {
-            setAddress(data.display_name);
-            toast.success("Location detected successfully!");
-          } else {
-            toast.warning("Unable to fetch address. Try again manually.");
-          }
-        } catch {
-          toast.error("Failed to get address. Try again.");
+  navigator.geolocation.getCurrentPosition(
+    async ({ coords }) => {
+      const { latitude, longitude } = coords;
+
+      try {
+        const res = await fetch(
+          `https://us1.locationiq.com/v1/reverse.php?key=pk.ddf94865508fa900df1c5c04e8e973b6&lat=${latitude}&lon=${longitude}&format=json`
+        );
+
+        const data = await res.json();
+        console.log("LocationIQ Response:", data);
+
+        if (!data || !data.address) {
+          toast.error("Unable to fetch address.");
+          return;
         }
-      },
-      () => {
-        toast.error("Location access denied.");
+
+        const a = data.address;
+
+        const village =
+          a.village ||
+          a.hamlet ||
+          a.locality ||
+          a.suburb ||
+          a.town ||
+          "";
+
+        const mandal =
+          a.county ||   
+          a.state_district ||
+          "";
+
+        const district =
+          a.city ||
+          a.district ||
+          a.county || 
+          "";
+
+        const state = a.state || "";
+        const pincode = a.postcode || "";
+        const country = a.country || "";
+
+        const finalAddress = `${village ? village + ", " : ""}${mandal ? mandal + ", " : ""}${district ? district + ", " : ""}${state ? state + ", " : ""}${pincode ? pincode + ", " : ""}${country}`.trim();
+
+        setAddress(finalAddress);
+
+        toast.success("Location detected!");
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to fetch location");
       }
-    );
-  };
+    },
+    () => toast.error("Location access denied"),
+    { enableHighAccuracy: true }
+  );
+};
 
   // Place Order
   const handlePlaceOrder = async () => {

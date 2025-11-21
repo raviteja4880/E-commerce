@@ -75,7 +75,7 @@ function Login() {
         transition={{ duration: 0.7 }}
       >
         <ShoppingBag size={48} className="mb-3" />
-        <h1 className="display-5 fw-bold mb-2">TejaCommerce</h1>
+        <h1 className="display-5 fw-bold mb-2">My Store</h1>
         <p className="fs-5 mb-4 text-light opacity-75">
           Your one-stop destination for quality and convenience.
         </p>
@@ -236,7 +236,7 @@ function Login() {
 
       {/* ===== Footer ===== */}
       <footer className="text-center mt-5 mb-3 text-light opacity-75">
-        © {new Date().getFullYear()} TejaCommerce. All rights reserved.
+        © {new Date().getFullYear()} My Store | All Rights Reserved.
       </footer>
     </div>
   );

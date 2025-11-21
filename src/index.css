@@ -61,3 +61,17 @@ body, html {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Hide Bootstrap navbar hamburger menu on mobile */
+@media (max-width: 768px) {
+  .navbar-toggler {
+    display: none !important;
+  }
+
+  /* Prevent navbar collapse on mobile */
+  .navbar-collapse {
+    display: flex !important;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}

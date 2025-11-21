@@ -267,7 +267,7 @@ const progressColor = order?.isCanceled
             <div
               style={{
                 position: "absolute",
-                top: "45%",
+                top: "50%",
                 left: "10%",
                 right: "10%",
                 height: "4px",

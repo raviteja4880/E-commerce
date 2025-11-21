@@ -6,7 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import Navbar from "./pages/Navbar";
+import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
@@ -17,6 +17,9 @@ import ProductDetails from "./pages/ProductDetails";
 import PaymentPage from "./pages/PaymentPage";
 import ProfilePage from "./pages/ProfilePage";
 import MyOrdersPage from "./pages/MyOrdersPage";
+import MobileBottomNav from "./components/MobileBottomNav";
+import CategoriesPage from "./pages/CategoriesPage";
+import Footer from "./pages/Footer";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,13 +28,26 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 function Layout({ children }) {
   const location = useLocation();
+
+  // Hide navbar + mobile bottom nav on login/register pages
   const hideNavbar =
     location.pathname === "/login" || location.pathname === "/register";
 
+  const showFooterOnlyOnHome = location.pathname === "/";
+
   return (
     <>
+      {/* Desktop/Tablet Navbar */}
       {!hideNavbar && <Navbar />}
+
+      {/* Page Content */}
       {children}
+
+      {/* Mobile Bottom Navbar */}
+      {!hideNavbar && <MobileBottomNav />}
+
+      {/* Footer */}
+      {showFooterOnlyOnHome && <Footer />}
     </>
   );
 }
@@ -55,6 +71,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            <Route path="/categories" element={<CategoriesPage />} />
+
             <Route
               path="/checkout"
               element={
@@ -63,6 +82,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/payment/:orderId"
               element={
@@ -71,6 +91,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/order-success/:orderId"
               element={
@@ -79,6 +100,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/profile"
               element={
@@ -87,6 +109,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/my-orders"
               element={

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { productAPI } from "../services/api";
 import ProductCard from "../components/products/ProductCard";
 import Loader from "../pages/Loader";
+import { useLocation } from "react-router-dom";
 import "../scrollMessage.css";
 
 function Home() {
@@ -9,6 +10,10 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showBanner, setShowBanner] = useState(true);
+
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const selectedCategory = queryParams.get("category");
 
   const userInfo = localStorage.getItem("userInfo");
 
@@ -22,12 +27,22 @@ function Home() {
     try {
       const { data } = await productAPI.getAll();
 
-      const grouped = data.reduce((acc, product) => {
+      // FILTER BY CATEGORY IF SELECTED
+      let filtered = data;
+      if (selectedCategory) {
+        filtered = data.filter(
+          (product) => product.category === selectedCategory
+        );
+      }
+
+      // GROUP PRODUCTS
+      const grouped = filtered.reduce((acc, product) => {
         if (!acc[product.category]) acc[product.category] = [];
         acc[product.category].push(product);
         return acc;
       }, {});
 
+      // SORT A-Z INSIDE EACH CATEGORY
       Object.keys(grouped).forEach((cat) => {
         grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
       });
@@ -46,13 +61,14 @@ function Home() {
 
   useEffect(() => {
     fetchProducts();
+
     if (userInfo) document.body.style.overflowX = "hidden";
     return () => (document.body.style.overflowX = "auto");
-  }, []);
+  }, [selectedCategory]); 
 
   return (
     <div className="container mt-4 position-relative">
-      {/* Floating Scrolling Banner — visible during loading or wake-up */}
+      {/* Floating Scrolling Banner */}
       {!userInfo && showBanner && (
         <div className="scrolling-banner-container">
           <div className="scrolling-banner text-center fw-semibold">
@@ -70,14 +86,14 @@ function Home() {
         </div>
       )}
 
-      {/* Loader always below the floating banner */}
+      {/* Loader */}
       {loading && (
         <div className="d-flex justify-content-center align-items-center mt-5">
           <Loader />
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {!loading && error && (
         <div className="text-center mt-5 text-danger">
           <p>{error}</p>
@@ -92,7 +108,7 @@ function Home() {
         <p className="text-center mt-5">No products available.</p>
       )}
 
-      {/* Products grouped by category */}
+      {/* Products grouped by category OR by selected category */}
       {!error &&
         !loading &&
         Object.keys(groupedProducts).map((category) => (
