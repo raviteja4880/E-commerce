@@ -125,8 +125,17 @@ const OrderCard = ({ order, navigate }) => {
     )}`;
     deliveryColor = "#28a745";
   } else if (now > expected) {
-    deliveryMessage = "Delivering soon — may take a while";
-    deliveryColor = "#ff8c00";
+    const delayDays = Math.floor(
+      (now - expected) / (1000 * 60 * 60 * 24)
+    );
+    if (delayDays === 0) {
+      deliveryMessage = "Delivering soon — on the way";
+    } else if (delayDays === 1) {
+      deliveryMessage = "Delivery delayed by 1 day — arriving soon";
+    } else {
+      deliveryMessage = `Delivery delayed by ${delayDays} days — arriving soon`;
+    }
+    deliveryColor = "#ff8c00"; 
   } else {
     deliveryMessage = `Expected by ${expectedDelivery}`;
     deliveryColor = "#666";

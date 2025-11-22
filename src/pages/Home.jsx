@@ -3,12 +3,15 @@ import { productAPI } from "../services/api";
 import ProductCard from "../components/products/ProductCard";
 import Loader from "../pages/Loader";
 import { useLocation } from "react-router-dom";
+import { Search } from "lucide-react";
 import "../scrollMessage.css";
 
 function Home() {
   const [groupedProducts, setGroupedProducts] = useState({});
+  const [filteredProducts, setFilteredProducts] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showBanner, setShowBanner] = useState(true);
 
   const location = useLocation();
@@ -27,7 +30,6 @@ function Home() {
     try {
       const { data } = await productAPI.getAll();
 
-      // FILTER BY CATEGORY IF SELECTED
       let filtered = data;
       if (selectedCategory) {
         filtered = data.filter(
@@ -35,19 +37,18 @@ function Home() {
         );
       }
 
-      // GROUP PRODUCTS
       const grouped = filtered.reduce((acc, product) => {
         if (!acc[product.category]) acc[product.category] = [];
         acc[product.category].push(product);
         return acc;
       }, {});
 
-      // SORT A-Z INSIDE EACH CATEGORY
       Object.keys(grouped).forEach((cat) => {
         grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
       });
 
       setGroupedProducts(grouped);
+      setFilteredProducts(grouped);
     } catch (err) {
       console.error("Products fetch error:", err.response?.data || err.message);
       setError("Failed to load products.");
@@ -59,12 +60,55 @@ function Home() {
     }
   };
 
+const handleSearch = (e) => {
+  const query = e.target.value.toLowerCase();
+  setSearchQuery(query);
+
+  if (!query.trim()) {
+    setFilteredProducts(groupedProducts);
+    return;
+  }
+
+  // Flatten all products into a single array
+  const allProducts = Object.values(groupedProducts).flat();
+
+  // Find exact matches (by name, brand, or category)
+  const matches = allProducts.filter(
+    (p) =>
+      p.name.toLowerCase().includes(query) ||
+      p.brand.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query)
+  );
+
+  // If no exact matches, find related (fuzzy)
+  let finalResults = matches;
+  if (matches.length === 0) {
+    finalResults = allProducts.filter((p) =>
+      p.name
+        .toLowerCase()
+        .split(" ")
+        .some(
+          (word) =>
+            query.includes(word) || word.includes(query.slice(0, 3))
+        )
+    ).slice(0, 8);
+  }
+
+  // Group back by category
+  const grouped = finalResults.reduce((acc, product) => {
+    if (!acc[product.category]) acc[product.category] = [];
+    acc[product.category].push(product);
+    return acc;
+  }, {});
+
+  setFilteredProducts(grouped);
+};
+
   useEffect(() => {
     fetchProducts();
-
     if (userInfo) document.body.style.overflowX = "hidden";
     return () => (document.body.style.overflowX = "auto");
-  }, [selectedCategory]); 
+  }, [selectedCategory]);
 
   return (
     <div className="container mt-4 position-relative">
@@ -86,6 +130,33 @@ function Home() {
         </div>
       )}
 
+      {/* Search Bar */}
+      <div className="d-flex justify-content-center mb-4 position-relative" style={{ maxWidth: "350px", margin: "0 auto" }}>
+        <Search
+          size={25}
+          className="position-absolute ms-3"
+          style={{
+            top: "50%",
+            left: "0px",
+            transform: "translateY(-50%)",
+            color: "#6c757d",
+            pointerEvents: "none",
+          }}
+        />
+        <input
+          type="text"
+          className="form-control ps-5"
+          placeholder="Search products, brands or categories..."
+          value={searchQuery}
+          onChange={handleSearch}
+          style={{
+            borderRadius: "30px",
+            padding: "10px 20px",
+            boxShadow: "0 1px 6px rgba(0,0,0,0.1)",
+          }}
+        />
+      </div>
+
       {/* Loader */}
       {loading && (
         <div className="d-flex justify-content-center align-items-center mt-5">
@@ -103,19 +174,19 @@ function Home() {
         </div>
       )}
 
-      {/* No products */}
-      {!error && !loading && Object.keys(groupedProducts).length === 0 && (
+      {/* No Products */}
+      {!error && !loading && Object.keys(filteredProducts).length === 0 && (
         <p className="text-center mt-5">No products available.</p>
       )}
 
-      {/* Products grouped by category OR by selected category */}
+      {/* Products */}
       {!error &&
         !loading &&
-        Object.keys(groupedProducts).map((category) => (
+        Object.keys(filteredProducts).map((category) => (
           <div key={category} className="mb-5">
             <h3 className="mb-4 text-capitalize fw-semibold">{category}</h3>
             <div className="row">
-              {groupedProducts[category].map((product) => (
+              {filteredProducts[category].map((product) => (
                 <div key={product._id} className="col-6 col-md-3 mb-4">
                   <ProductCard product={product} />
                 </div>

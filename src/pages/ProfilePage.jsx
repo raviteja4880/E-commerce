@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { authAPI } from "../services/api";
 import { toast } from "react-toastify";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ProfilePage = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,7 @@ const ProfilePage = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   // ================= FETCH PROFILE =================
   useEffect(() => {
@@ -71,6 +73,14 @@ const ProfilePage = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  // ================= LOGOUT (Mobile only) =================
+  const handleLogout = () => {
+    localStorage.removeItem("userInfo");
+    localStorage.removeItem("token");
+    toast.info("Logged out successfully.");
+    navigate("/login");
   };
 
   if (loading) {
@@ -154,7 +164,7 @@ const ProfilePage = () => {
             {/* Save Button */}
             <button
               type="submit"
-              className="btn btn-primary w-100 py-2"
+              className="btn btn-primary w-100 py-2 mb-3"
               disabled={saving}
             >
               {saving ? (
@@ -167,6 +177,14 @@ const ProfilePage = () => {
               )}
             </button>
           </form>
+
+          {/* Logout Button - visible only on mobile */}
+          <button
+            className="btn btn-danger w-100 d-md-none d-block d-flex align-items-center justify-content-center gap-2 mt-2"
+            onClick={handleLogout}
+          >
+            <LogOut size={18} /> Logout
+          </button>
         </div>
       </div>
     </div>

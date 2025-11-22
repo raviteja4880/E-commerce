@@ -83,9 +83,11 @@ function OrderSuccessPage() {
         if (data.isCanceled) setProgressStage(0);
         else if (data.isDelivered) setProgressStage(5);
         else {
-          const backendStage = data.deliveryStage || 1;
-          const frontendStage = backendStage === 4 ? 5 : backendStage;
-          setProgressStage(frontendStage);
+          const created = new Date(data.createdAt);
+          const today = new Date();
+          const daysPassed = Math.floor((today - created) / (1000 * 60 * 60 * 24));
+          const calculatedStage = Math.min(daysPassed + 1, stages.length - 1); 
+          setProgressStage(calculatedStage);
         }
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load order");

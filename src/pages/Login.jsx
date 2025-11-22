@@ -75,7 +75,7 @@ function Login() {
         transition={{ duration: 0.7 }}
       >
         <ShoppingBag size={48} className="mb-3" />
-        <h1 className="display-5 fw-bold mb-2">My Store</h1>
+        <h1 className="display-5 fw-bold mb-2">MyStore</h1>
         <p className="fs-5 mb-4 text-light opacity-75">
           Your one-stop destination for quality and convenience.
         </p>
@@ -202,7 +202,7 @@ function Login() {
 
       {/* ===== Info Section ===== */}
       <section className="info-section text-center mt-5 px-3">
-        <h3 className="fw-bold mb-4">Why Choose TejaCommerce</h3>
+        <h3 className="fw-bold mb-4">Why Choose MyStore</h3>
         <div className="row justify-content-center">
           <div className="col-md-3 col-10 mb-4">
             <div className="info-card p-4 shadow-sm rounded-4">
@@ -236,7 +236,7 @@ function Login() {
 
       {/* ===== Footer ===== */}
       <footer className="text-center mt-5 mb-3 text-light opacity-75">
-        © {new Date().getFullYear()} My Store | All Rights Reserved.
+        © {new Date().getFullYear()} MyStore | All Rights Reserved.
       </footer>
     </div>
   );
