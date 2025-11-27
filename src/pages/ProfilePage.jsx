@@ -3,6 +3,7 @@ import { authAPI } from "../services/api";
 import { toast } from "react-toastify";
 import { Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import RequireLogin from "../components/RequireLogin"; // ✅ added
 
 const ProfilePage = () => {
   const [formData, setFormData] = useState({
@@ -16,9 +17,16 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
 
+  const userInfo = JSON.parse(localStorage.getItem("userInfo")); // ✅ check login
+
   // ================= FETCH PROFILE =================
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!userInfo?.token) {
+        setLoading(false);
+        return; // ✅ skip fetch if not logged in
+      }
+
       try {
         const { data } = await authAPI.getProfile();
         setFormData({
@@ -82,6 +90,19 @@ const ProfilePage = () => {
     toast.info("Logged out successfully.");
     navigate("/login");
   };
+
+  // ✅ Show RequireLogin if user not logged in
+  if (!userInfo?.token) {
+    return (
+      <RequireLogin>
+        <div className="text-center mt-5">
+          <p className="text-muted fs-5">
+            Please log in to view and edit your profile.
+          </p>
+        </div>
+      </RequireLogin>
+    );
+  }
 
   if (loading) {
     return (

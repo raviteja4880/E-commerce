@@ -1,10 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
 import { productAPI } from "../services/api";
-import ProductCard from "../components/products/ProductCard";
-import Loader from "../pages/Loader";
 import { useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
 import "../scrollMessage.css";
+
+// Lazy load heavy components
+const ProductCard = React.lazy(() => import("../components/products/ProductCard"));
+const Loader = React.lazy(() => import("../pages/Loader"));
 
 function Home() {
   const [groupedProducts, setGroupedProducts] = useState({});
@@ -20,7 +28,8 @@ function Home() {
 
   const userInfo = localStorage.getItem("userInfo");
 
-  const fetchProducts = async () => {
+  // Memoized fetchProducts to prevent re-creation
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -58,57 +67,74 @@ function Home() {
         setTimeout(() => setShowBanner(false), 2000);
       }
     }
-  };
+  }, [selectedCategory, userInfo]);
 
-const handleSearch = (e) => {
-  const query = e.target.value.toLowerCase();
-  setSearchQuery(query);
+  // Memoized search function
+  const handleSearch = useCallback(
+    (e) => {
+      const query = e.target.value.toLowerCase();
+      setSearchQuery(query);
 
-  if (!query.trim()) {
-    setFilteredProducts(groupedProducts);
-    return;
-  }
+      if (!query.trim()) {
+        setFilteredProducts(groupedProducts);
+        return;
+      }
 
-  // Flatten all products into a single array
-  const allProducts = Object.values(groupedProducts).flat();
+      const allProducts = Object.values(groupedProducts).flat();
 
-  // Find exact matches (by name, brand, or category)
-  const matches = allProducts.filter(
-    (p) =>
-      p.name.toLowerCase().includes(query) ||
-      p.brand.toLowerCase().includes(query) ||
-      p.category.toLowerCase().includes(query)
+      const matches = allProducts.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.brand.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query)
+      );
+
+      let finalResults = matches;
+      if (matches.length === 0) {
+        finalResults = allProducts
+          .filter((p) =>
+            p.name
+              .toLowerCase()
+              .split(" ")
+              .some(
+                (word) => query.includes(word) || word.includes(query.slice(0, 3))
+              )
+          )
+          .slice(0, 8);
+      }
+
+      const grouped = finalResults.reduce((acc, product) => {
+        if (!acc[product.category]) acc[product.category] = [];
+        acc[product.category].push(product);
+        return acc;
+      }, {});
+
+      setFilteredProducts(grouped);
+    },
+    [groupedProducts]
   );
-
-  // If no exact matches, find related (fuzzy)
-  let finalResults = matches;
-  if (matches.length === 0) {
-    finalResults = allProducts.filter((p) =>
-      p.name
-        .toLowerCase()
-        .split(" ")
-        .some(
-          (word) =>
-            query.includes(word) || word.includes(query.slice(0, 3))
-        )
-    ).slice(0, 8);
-  }
-
-  // Group back by category
-  const grouped = finalResults.reduce((acc, product) => {
-    if (!acc[product.category]) acc[product.category] = [];
-    acc[product.category].push(product);
-    return acc;
-  }, {});
-
-  setFilteredProducts(grouped);
-};
 
   useEffect(() => {
     fetchProducts();
     if (userInfo) document.body.style.overflowX = "hidden";
     return () => (document.body.style.overflowX = "auto");
-  }, [selectedCategory]);
+  }, [fetchProducts]);
+
+  // Memoize rendered product groups for performance
+  const renderedProducts = useMemo(() => {
+    return Object.keys(filteredProducts).map((category) => (
+      <div key={category} className="mb-5">
+        <h3 className="mb-4 text-capitalize fw-semibold">{category}</h3>
+        <div className="row">
+          {filteredProducts[category].map((product) => (
+            <div key={product._id} className="col-6 col-md-3 mb-4">
+              <MemoizedProductCard product={product} />
+            </div>
+          ))}
+        </div>
+      </div>
+    ));
+  }, [filteredProducts]);
 
   return (
     <div className="container mt-4 position-relative">
@@ -131,7 +157,10 @@ const handleSearch = (e) => {
       )}
 
       {/* Search Bar */}
-      <div className="d-flex justify-content-center mb-4 position-relative" style={{ maxWidth: "350px", margin: "0 auto" }}>
+      <div
+        className="d-flex justify-content-center mb-4 position-relative"
+        style={{ maxWidth: "350px", margin: "0 auto" }}
+      >
         <Search
           size={25}
           className="position-absolute ms-3"
@@ -160,7 +189,9 @@ const handleSearch = (e) => {
       {/* Loader */}
       {loading && (
         <div className="d-flex justify-content-center align-items-center mt-5">
-          <Loader />
+          <Suspense fallback={<div>Loading...</div>}>
+            <Loader />
+          </Suspense>
         </div>
       )}
 
@@ -180,22 +211,18 @@ const handleSearch = (e) => {
       )}
 
       {/* Products */}
-      {!error &&
-        !loading &&
-        Object.keys(filteredProducts).map((category) => (
-          <div key={category} className="mb-5">
-            <h3 className="mb-4 text-capitalize fw-semibold">{category}</h3>
-            <div className="row">
-              {filteredProducts[category].map((product) => (
-                <div key={product._id} className="col-6 col-md-3 mb-4">
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
+      {!error && !loading && (
+        <Suspense fallback={<div>Loading products...</div>}>
+          {renderedProducts}
+        </Suspense>
+      )}
     </div>
   );
 }
 
-export default Home;
+// Memoized ProductCard (prevents re-rendering)
+const MemoizedProductCard = React.memo(function ProductCardWrapper({ product }) {
+  return <ProductCard product={product} />;
+});
+
+export default React.memo(Home);

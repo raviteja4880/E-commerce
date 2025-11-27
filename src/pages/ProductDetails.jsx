@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { productAPI } from "../services/api";
 import { useCart } from "../context/CartContext";
-import ProductCard from "../components/products/ProductCard";
 import { toast } from "react-toastify";
-import Loader from "./Loader";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ✅ Rupee formatter
-const Rupee = ({ value, size = "1.1rem", bold = false, color = "#28a745" }) => (
+// 💤 Lazy-load heavy components
+const ProductCard = React.lazy(() => import("../components/products/ProductCard"));
+const Loader = React.lazy(() => import("./Loader"));
+
+// ✅ Rupee formatter (memoized)
+const Rupee = React.memo(({ value, size = "1.1rem", bold = false, color = "#28a745" }) => (
   <span
     style={{
       fontFamily:
@@ -32,7 +40,7 @@ const Rupee = ({ value, size = "1.1rem", bold = false, color = "#28a745" }) => (
     </span>
     <span>{value?.toLocaleString("en-IN")}</span>
   </span>
-);
+));
 
 function ProductDetails() {
   const { id } = useParams();
@@ -45,113 +53,136 @@ function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Fetch product and recommendations
-  useEffect(() => {
-    const fetchProductAndOthers = async () => {
-      try {
-        const { data: mainProduct } = await productAPI.getById(id);
-        setProduct(mainProduct);
+  // ✅ Fetch product and recommendations (memoized)
+  const fetchProductAndOthers = useCallback(async () => {
+    try {
+      const { data: mainProduct } = await productAPI.getById(id);
+      setProduct(mainProduct);
 
-        const { data: allProducts } = await productAPI.getAll();
-        const remaining = allProducts.filter((p) => p._id !== id);
-        setOtherProducts(remaining);
+      const { data: allProducts } = await productAPI.getAll();
+      const remaining = allProducts.filter((p) => p._id !== id);
+      setOtherProducts(remaining);
 
-        // 🆕 Scroll to top when product changes
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      } catch (err) {
-        setError("Failed to load product.");
-        console.error("Product fetch error:", err.response?.data || err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProductAndOthers();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError("Failed to load product.");
+      console.error("Product fetch error:", err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
-  if (loading) return <Loader />;
-  if (error)
-    return (
-      <p className="text-center mt-5 text-danger fw-semibold">{error}</p>
-    );
-  if (!product)
-    return <p className="text-center mt-5 text-muted">Product not found.</p>;
+  useEffect(() => {
+    fetchProductAndOthers();
+  }, [fetchProductAndOthers]);
 
-  // ✅ Quantity logic
-  const handleQtyChange = (val) => {
+  const handleQtyChange = useCallback((val) => {
     if (val < 1) return;
     setQty(val);
-  };
+  }, []);
 
-  // ✅ Add to cart animation
-  const handleAddToCart = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleAddToCart = useCallback(
+    async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    if (!userInfo?.token) {
-      toast.warning("You need to log in to access the cart");
-      navigate("/login");
-      return;
-    }
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+      if (!userInfo?.token) {
+        toast.warning("You need to log in to access the cart");
+        navigate("/login");
+        return;
+      }
 
-    const productImage = document.getElementById("product-main-image");
-    const cartIcon = document.getElementById("cart-icon");
+      const productImage = document.getElementById("product-main-image");
+      const cartIcon = document.getElementById("cart-icon");
 
-    if (!cartIcon || !productImage) {
-      await addToCart(product._id, qty);
-      toast.success(`${product.name} added to cart`);
-      return;
-    }
+      if (!cartIcon || !productImage) {
+        await addToCart(product._id, qty);
+        toast.success(`${product.name} added to cart`);
+        return;
+      }
 
-    // Animate image flying to cart
-    const clone = productImage.cloneNode(true);
-    const imgRect = productImage.getBoundingClientRect();
-    const cartRect = cartIcon.getBoundingClientRect();
+      // 🧠 Fly-to-cart animation
+      const clone = productImage.cloneNode(true);
+      const imgRect = productImage.getBoundingClientRect();
+      const cartRect = cartIcon.getBoundingClientRect();
 
-    clone.style.position = "fixed";
-    clone.style.left = imgRect.left + "px";
-    clone.style.top = imgRect.top + "px";
-    clone.style.width = imgRect.width + "px";
-    clone.style.height = imgRect.height + "px";
-    clone.style.borderRadius = "10px";
-    clone.style.transition =
-      "all 0.9s cubic-bezier(0.4, 0.7, 0.2, 1.1), opacity 0.9s";
-    clone.style.zIndex = 9999;
-    clone.style.pointerEvents = "none";
-    clone.style.opacity = 1;
-    document.body.appendChild(clone);
+      Object.assign(clone.style, {
+        position: "fixed",
+        left: imgRect.left + "px",
+        top: imgRect.top + "px",
+        width: imgRect.width + "px",
+        height: imgRect.height + "px",
+        borderRadius: "10px",
+        transition: "all 0.9s cubic-bezier(0.4, 0.7, 0.2, 1.1), opacity 0.9s",
+        zIndex: 9999,
+        pointerEvents: "none",
+        opacity: 1,
+      });
+      document.body.appendChild(clone);
 
-    requestAnimationFrame(() => {
-      clone.style.transform = `translate3d(
-        ${cartRect.left - imgRect.left}px,
-        ${cartRect.top - imgRect.top}px,
-        0
-      ) scale(0.2) rotate(25deg)`;
-      clone.style.opacity = 0.1;
-    });
+      requestAnimationFrame(() => {
+        clone.style.transform = `translate3d(
+          ${cartRect.left - imgRect.left}px,
+          ${cartRect.top - imgRect.top}px,
+          0
+        ) scale(0.2) rotate(25deg)`;
+        clone.style.opacity = 0.1;
+      });
 
-    setTimeout(() => {
-      clone.remove();
+      setTimeout(() => {
+        clone.remove();
+        cartIcon.classList.add("cart-bounce");
+        setTimeout(() => cartIcon.classList.remove("cart-bounce"), 600);
 
-      cartIcon.classList.add("cart-bounce");
-      setTimeout(() => cartIcon.classList.remove("cart-bounce"), 600);
+        addToCart(product._id, qty)
+          .then(() => {
+            sessionStorage.setItem("cartAnimation", product.name);
+            navigate("/cart");
+          })
+          .catch(() => toast.error("Failed to add to cart"));
+      }, 850);
+    },
+    [addToCart, navigate, product, qty]
+  );
 
-      addToCart(product._id, qty)
-        .then(() => {
-          sessionStorage.setItem("cartAnimation", product.name);
-          navigate("/cart");
-        })
-        .catch(() => toast.error("Failed to add to cart"));
-    }, 850);
-  };
+  const handleRecommendedClick = useCallback(
+    (pid) => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => navigate(`/product/${pid}`), 300);
+    },
+    [navigate]
+  );
 
-  // 🆕 Handle recommended product click
-  const handleRecommendedClick = (pid) => {
-    // smooth scroll + motion exit
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => navigate(`/product/${pid}`), 300);
-  };
+  const recommendedList = useMemo(
+    () =>
+      otherProducts.map((p) => (
+        <div
+          key={p._id}
+          className="col-6 col-md-3 mb-4"
+          style={{ cursor: "pointer" }}
+          onClick={() => handleRecommendedClick(p._id)}
+        >
+          <Suspense fallback={<div>Loading...</div>}>
+            <ProductCard product={p} />
+          </Suspense>
+        </div>
+      )),
+    [otherProducts, handleRecommendedClick]
+  );
+
+  if (loading)
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <Loader />
+      </Suspense>
+    );
+
+  if (error)
+    return <p className="text-center mt-5 text-danger fw-semibold">{error}</p>;
+
+  if (!product)
+    return <p className="text-center mt-5 text-muted">Product not found.</p>;
 
   return (
     <AnimatePresence mode="wait">
@@ -245,18 +276,7 @@ function ProductDetails() {
             <h3 className="fw-bold mb-4 text-primary">
               Other Products You May Like
             </h3>
-            <div className="row">
-              {otherProducts.map((p) => (
-                <div
-                  key={p._id}
-                  className="col-6 col-md-3 mb-4"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleRecommendedClick(p._id)}
-                >
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
+            <div className="row">{recommendedList}</div>
           </motion.div>
         )}
 
@@ -275,4 +295,4 @@ function ProductDetails() {
   );
 }
 
-export default ProductDetails;
+export default React.memo(ProductDetails);

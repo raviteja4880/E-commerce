@@ -61,19 +61,12 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/product/:id" element={<ProductDetails />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/my-orders" element={<MyOrdersPage />} />            
 
             {/* Protected Routes */}
-            <Route
-              path="/cart"
-              element={
-                <ProtectedRoute>
-                  <Cart />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route path="/categories" element={<CategoriesPage />} />
-
             <Route
               path="/checkout"
               element={
@@ -101,23 +94,6 @@ function App() {
               }
             />
 
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/my-orders"
-              element={
-                <ProtectedRoute>
-                  <MyOrdersPage />
-                </ProtectedRoute>
-              }
-            />
           </Routes>
         </Layout>
 

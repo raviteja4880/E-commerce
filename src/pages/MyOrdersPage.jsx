@@ -10,6 +10,7 @@ import {
   FaQrcode,
   FaCreditCard,
 } from "react-icons/fa";
+import RequireLogin from "../components/RequireLogin"; 
 
 // Unified Rupee formatter
 const Rupee = ({ value, size = "1rem", bold = false, color = "#000" }) => (
@@ -44,6 +45,8 @@ function MyOrdersPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const userInfo = JSON.parse(localStorage.getItem("userInfo")); // ✅ check login
+
   const fetchOrders = async () => {
     try {
       const { data } = await orderAPI.getMyOrders();
@@ -56,41 +59,59 @@ function MyOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    // ✅ only fetch if logged in
+    if (userInfo?.token) {
+      fetchOrders();
+    } else {
+      setLoading(false);
+    }
   }, []);
+
+  if (!userInfo?.token) {
+    return (
+      <RequireLogin>
+        <div className="text-center mt-5">
+          <p className="text-muted fs-5">Please log in to view your orders.</p>
+        </div>
+      </RequireLogin>
+    );
+  }
 
   if (loading) return <Loader />;
   if (error) return <div className="alert alert-danger">{error}</div>;
   if (orders.length === 0)
     return <p className="text-center mt-5 fs-5 text-muted">No orders yet.</p>;
 
-  return (
-    <div
-      className="container-fluid py-5 px-3 px-md-5"
-      style={{
-        backgroundColor: "#f8f9fb",
-        minHeight: "100vh",
-      }}
-    >
-      <h2 className="text-center fw-bold mb-5" style={{ color: "#007bff" }}>
-        My Orders
-      </h2>
 
+  return (
+    <RequireLogin>
       <div
-        className="order-grid"
+        className="container-fluid py-5 px-3 px-md-5"
         style={{
-          display: "grid",
-          gap: "24px",
-          gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
-          maxWidth: "1400px",
-          margin: "0 auto",
+          backgroundColor: "#f8f9fb",
+          minHeight: "100vh",
         }}
       >
-        {orders.map((order) => (
-          <OrderCard key={order._id} order={order} navigate={navigate} />
-        ))}
+        <h2 className="text-center fw-bold mb-5" style={{ color: "#007bff" }}>
+          My Orders
+        </h2>
+
+        <div
+          className="order-grid"
+          style={{
+            display: "grid",
+            gap: "24px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))",
+            maxWidth: "1400px",
+            margin: "0 auto",
+          }}
+        >
+          {orders.map((order) => (
+            <OrderCard key={order._id} order={order} navigate={navigate} />
+          ))}
+        </div>
       </div>
-    </div>
+    </RequireLogin>
   );
 }
 
@@ -125,9 +146,7 @@ const OrderCard = ({ order, navigate }) => {
     )}`;
     deliveryColor = "#28a745";
   } else if (now > expected) {
-    const delayDays = Math.floor(
-      (now - expected) / (1000 * 60 * 60 * 24)
-    );
+    const delayDays = Math.floor((now - expected) / (1000 * 60 * 60 * 24));
     if (delayDays === 0) {
       deliveryMessage = "Delivering soon — on the way";
     } else if (delayDays === 1) {
@@ -135,7 +154,7 @@ const OrderCard = ({ order, navigate }) => {
     } else {
       deliveryMessage = `Delivery delayed by ${delayDays} days — arriving soon`;
     }
-    deliveryColor = "#ff8c00"; 
+    deliveryColor = "#ff8c00";
   } else {
     deliveryMessage = `Expected by ${expectedDelivery}`;
     deliveryColor = "#666";
