@@ -1,3 +1,13 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Disallow internal/private routes
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+Disallow: /api
+Disallow: /profile
+Disallow: /my-orders
+
+# Sitemap reference
+Sitemap: https://yourdomain.com/sitemap.xml
