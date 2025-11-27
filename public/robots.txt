@@ -10,4 +10,4 @@ Disallow: /profile
 Disallow: /my-orders
 
 # Sitemap reference
-Sitemap: https://yourdomain.com/sitemap.xml
+Sitemap: Sitemap: https://tejacommerce.netlify.app/sitemap.xml
