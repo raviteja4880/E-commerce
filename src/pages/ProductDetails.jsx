@@ -202,17 +202,30 @@ function ProductDetails() {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.5 }}
           >
+          <div
+            style={{
+              height: "400px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#f8f9fa",
+              borderRadius: "8px",
+              border: "1px solid #eee",
+              marginBottom: "20px",
+            }}
+          >
             <img
               id="product-main-image"
               src={product.image}
               alt={product.name}
-              className="img-fluid rounded shadow-sm"
               style={{
-                maxHeight: "480px",
-                objectFit: "contain",
-                border: "1px solid #eee",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "cover", 
+                borderRadius: "8px",
               }}
             />
+          </div>
           </motion.div>
 
           <motion.div

@@ -116,16 +116,16 @@ const styles = {
     transition: "transform 0.2s ease, box-shadow 0.2s ease",
   },
   imageWrapper: {
-    height: "200px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: "10px",
+  height: "200px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: "10px",
   },
   image: {
     maxWidth: "100%",
     maxHeight: "100%",
-    objectFit: "cover",
+    objectFit: "cover",  
     borderRadius: "8px",
   },
   title: {
