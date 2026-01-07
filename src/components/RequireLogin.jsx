@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 export default function RequireLogin({ children }) {
   const navigate = useNavigate();
@@ -9,7 +10,6 @@ export default function RequireLogin({ children }) {
   // Extract page name from pathname
   const getPageName = () => {
     const path = location.pathname.toLowerCase();
-
     if (path.includes("cart")) return "cart";
     if (path.includes("profile")) return "profile";
     if (path.includes("my-orders")) return "orders";
@@ -21,19 +21,27 @@ export default function RequireLogin({ children }) {
 
   if (!userInfo?.token) {
     return (
-      <div
-        className="d-flex flex-column justify-content-center align-items-center text-center"
-        style={{ minHeight: "70vh" }}
-      >
-        <h5 className="mb-3 fw-semibold text-muted">
-          You need to log in to access your {pageName}.
-        </h5>
-        <button
-          className="btn btn-primary px-4 py-2 fw-semibold"
-          onClick={() => navigate("/login")}
-        >
-          Login
-        </button>
+      <div className="require-login-wrapper">
+        <div className="require-login-card">
+          <div className="lock-icon">
+            <Lock size={36} />
+          </div>
+
+          <h4 className="require-title">Login Required</h4>
+
+          <p className="require-text">
+            Please log in to access your <strong>{pageName}</strong>.
+          </p>
+
+          <button
+            className="btn btn-primary px-4 py-2 fw-semibold"
+            onClick={() =>
+              navigate("/login", { state: { from: location.pathname } })
+            }
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }

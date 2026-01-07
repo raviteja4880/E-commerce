@@ -7,7 +7,7 @@ function ProtectedRoute({ children }) {
   try {
     const stored = localStorage.getItem("userInfo");
     if (stored) {
-      userInfo = JSON.parse(stored); // only parse if exists
+      userInfo = JSON.parse(stored); 
     }
   } catch (err) {
     console.error("Invalid userInfo in localStorage", err);

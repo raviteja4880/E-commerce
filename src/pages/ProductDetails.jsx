@@ -11,11 +11,11 @@ import { useCart } from "../context/CartContext";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 
-// 💤 Lazy-load heavy components
+// Lazy-load heavy components
 const ProductCard = React.lazy(() => import("../components/products/ProductCard"));
 const Loader = React.lazy(() => import("./Loader"));
 
-// ✅ Rupee formatter (memoized)
+// Rupee formatter (memoized)
 const Rupee = React.memo(({ value, size = "1.1rem", bold = false, color = "#28a745" }) => (
   <span
     style={{
@@ -53,7 +53,7 @@ function ProductDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ Fetch product and recommendations (memoized)
+  // Fetch product and recommendations (memoized)
   const fetchProductAndOthers = useCallback(async () => {
     try {
       const { data: mainProduct } = await productAPI.getById(id);

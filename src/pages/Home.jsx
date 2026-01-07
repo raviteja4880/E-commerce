@@ -64,7 +64,7 @@ function Home() {
     } finally {
       setLoading(false);
       if (!userInfo) {
-        setTimeout(() => setShowBanner(false), 2000);
+        setTimeout(() => setShowBanner(false));
       }
     }
   }, [selectedCategory, userInfo]);

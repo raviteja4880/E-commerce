@@ -1,245 +1,294 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { authAPI } from "../services/api";
-import { Truck, ShieldCheck, Gift, ShoppingBag } from "lucide-react";
 import { toast } from "react-toastify";
-import "../AuthLanding.css";
+import "../styles/AuthLanding.css";
 
-function Login() {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
+const OTP_DURATION = 120; // 2 minutes in seconds
+
+export default function Login() {
+  const navigate = useNavigate();
+  const [mode, setMode] = useState("login");
+  const [loading, setLoading] = useState(false);
+
+  const [otpTimer, setOtpTimer] = useState(0);
+
+  const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
     phone: "",
+    otp: "",
+    newPassword: "",
   });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const toggleMode = () => {
-    setError("");
-    setIsLogin(!isLogin);
-    setFormData({ name: "", email: "", password: "", phone: "" });
+  /* ================= OTP TIMER ================= */
+  useEffect(() => {
+    if (otpTimer <= 0) return;
+
+    const interval = setInterval(() => {
+      setOtpTimer((prev) => prev - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [otpTimer]);
+
+  const startOtpTimer = () => {
+    setOtpTimer(OTP_DURATION);
   };
 
+  const formatTime = (seconds) => {
+    const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+    const s = String(seconds % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
-      if (isLogin) {
+      /* ---------- LOGIN ---------- */
+      if (mode === "login") {
         const { data } = await authAPI.login({
-          email: formData.email,
-          password: formData.password,
+          email: form.email,
+          password: form.password,
         });
-        localStorage.setItem("userInfo", JSON.stringify(data.user || data));
+
+        localStorage.setItem("userInfo", JSON.stringify(data));
         localStorage.setItem("token", data.token);
+        window.dispatchEvent(new Event("userUpdated"));
+        toast.success("Welcome back!");
         navigate("/");
-      } else {
+      }
+
+      /* ---------- REGISTER ---------- */
+      if (mode === "register") {
         await authAPI.register({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          role: "user",
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          phone: form.phone,
         });
-        toast.success("Registration successful! Please login to continue.");
-        setTimeout(() => setIsLogin(true), 600);
+
+        toast.success("OTP sent to your email");
+        startOtpTimer();
+        setMode("otp");
+      }
+
+      /* ---------- VERIFY OTP ---------- */
+      if (mode === "otp") {
+        await authAPI.verifyOtp({
+          email: form.email,
+          otp: form.otp,
+        });
+
+        toast.success("Account verified");
+        navigate("/");
+      }
+
+      /* ---------- FORGOT PASSWORD ---------- */
+      if (mode === "forgot") {
+        await authAPI.forgotPassword(form.email);
+        toast.success("Reset OTP sent to your email");
+        startOtpTimer();
+        setMode("reset");
+      }
+
+      /* ---------- RESET PASSWORD ---------- */
+      if (mode === "reset") {
+        await authAPI.resetPassword({
+          email: form.email,
+          otp: form.otp,
+          newPassword: form.newPassword,
+        });
+
+        toast.success("Password reset successfully");
+        setMode("login");
       }
     } catch (err) {
-      // Log full error for debugging and show a more detailed message if available
-      console.error("Auth error:", err);
-      const message =
-        err?.response?.data?.message || err?.message || "Something went wrong!";
-      setError(message);
-      try {
-        toast.error(typeof message === "string" ? message : JSON.stringify(message));
-      } catch (e) {
-        // ignore toast errors
-      }
+      toast.error(err?.response?.data?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* ================= RESEND OTP ================= */
+  const handleResendOtp = async () => {
+    if (!form.email) return toast.error("Email missing");
+
+    const purpose =
+      mode === "otp" ? "register" : "reset_password";
+
+    try {
+      setLoading(true);
+      await authAPI.resendOtp({
+        email: form.email,
+        purpose,
+      });
+      toast.success("OTP resent");
+      startOtpTimer();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to resend OTP");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-landing">
-      {/* ===== Hero Section ===== */}
-      <motion.section
-        className="hero-section text-center text-light"
-        initial={{ opacity: 0, y: -30 }}
+    <div className="auth-wrapper">
+      <motion.div
+        className="auth-card"
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
       >
-        <ShoppingBag size={48} className="mb-3" />
-        <h1 className="display-5 fw-bold mb-2">MyStore</h1>
-        <p className="fs-5 mb-4 text-light opacity-75">
-          Your one-stop destination for quality and convenience.
-        </p>
-      </motion.section>
+        <h2 className="auth-title">
+          {mode === "login"
+            ? "Welcome Back"
+            : mode === "register"
+            ? "Create Account"
+            : mode === "otp"
+            ? "Verify Email"
+            : mode === "forgot"
+            ? "Forgot Password"
+            : "Reset Password"}
+        </h2>
 
-      {/* ===== Auth Card ===== */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={isLogin ? "login" : "register"}
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -40, scale: 0.95 }}
-          transition={{ duration: 0.5 }}
-          className="auth-card card shadow-lg border-0 p-4 mx-auto"
-        >
-          <h2 className="text-center fw-bold mb-3">
-            {isLogin ? "Welcome Back" : "Create Your Account"}
-          </h2>
-          <p className="text-muted text-center mb-4">
-            {isLogin
-              ? "Login to access your account and start shopping."
-              : "Join us and enjoy exclusive offers and fast delivery."}
+        <form onSubmit={handleSubmit}>
+          {/* REGISTER */}
+          {mode === "register" && (
+            <>
+              <input
+                placeholder="Full Name"
+                required
+                onChange={(e) =>
+                  setForm({ ...form, name: e.target.value })
+                }
+              />
+              <input
+                placeholder="Phone Number"
+                required
+                onChange={(e) =>
+                  setForm({ ...form, phone: e.target.value })
+                }
+              />
+            </>
+          )}
+
+          {/* EMAIL */}
+          {(mode === "login" ||
+            mode === "register" ||
+            mode === "forgot" ||
+            mode === "reset") && (
+            <input
+              type="email"
+              placeholder="Email"
+              required
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
+          )}
+
+          {/* PASSWORD */}
+          {(mode === "login" || mode === "register") && (
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              onChange={(e) =>
+                setForm({ ...form, password: e.target.value })
+              }
+            />
+          )}
+
+          {/* OTP */}
+          {(mode === "otp" || mode === "reset") && (
+            <input
+              placeholder="Enter OTP"
+              required
+              onChange={(e) =>
+                setForm({ ...form, otp: e.target.value })
+              }
+            />
+          )}
+
+          {/* NEW PASSWORD */}
+          {mode === "reset" && (
+            <input
+              type="password"
+              placeholder="New Password"
+              required
+              onChange={(e) =>
+                setForm({ ...form, newPassword: e.target.value })
+              }
+            />
+          )}
+
+          <button disabled={loading}>
+            {loading
+              ? "Please wait..."
+              : mode === "login"
+              ? "Login"
+              : mode === "register"
+              ? "Register"
+              : mode === "otp"
+              ? "Verify OTP"
+              : mode === "forgot"
+              ? "Send OTP"
+              : "Reset Password"}
+          </button>
+        </form>
+
+        {/* OTP TIMER + RESEND */}
+        {(mode === "otp" || mode === "reset") && (
+          <p className="toggle-text">
+            <>
+              OTP expires in <strong>{formatTime(otpTimer)}</strong>
+              {otpTimer > 0 && (
+                <>
+                  {" · "}
+                  <span
+                    onClick={handleResendOtp}
+                    style={{ opacity: loading ? 0.5 : 1 }}
+                  >
+                    Resend
+                  </span>
+                </>
+              )}
+            </>
           </p>
+        )}
 
-          {error && <div className="alert alert-danger">{error}</div>}
+        {/* FOOTER */}
+        {mode === "login" && (
+          <p className="toggle-text">
+            <span onClick={() => setMode("forgot")}>
+              Forgot password?
+            </span>
+          </p>
+        )}
 
-          <form onSubmit={handleSubmit}>
-            {!isLogin && (
+        {(mode === "login" || mode === "register") && (
+          <p className="toggle-text">
+            {mode === "login" ? (
               <>
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Full Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter your full name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label fw-semibold">Phone Number</label>
-                  <input
-                    type="tel"
-                    className="form-control"
-                    placeholder="Enter your phone number"
-                    pattern="[0-9]{10}"
-                    title="Enter a valid 10-digit phone number"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="mb-3">
-              <label className="form-label fw-semibold">Email</label>
-              <input
-                type="email"
-                className="form-control"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label fw-semibold">Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="btn btn-primary w-100 py-2 fw-semibold"
-              disabled={loading}
-            >
-              {loading
-                ? isLogin
-                  ? "Logging in..."
-                  : "Creating account..."
-                : isLogin
-                ? "Login"
-                : "Register"}
-            </button>
-          </form>
-
-          <div className="text-center mt-3">
-            {isLogin ? (
-              <>
-                Don’t have an account?{" "}
-                <button className="btn btn-link p-0" onClick={toggleMode}>
-                  Register
-                </button>
+                New here?{" "}
+                <span onClick={() => setMode("register")}>
+                  Create account
+                </span>
               </>
             ) : (
               <>
                 Already have an account?{" "}
-                <button className="btn btn-link p-0" onClick={toggleMode}>
-                  Login
-                </button>
+                <span onClick={() => setMode("login")}>Login</span>
               </>
             )}
-          </div>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* ===== Info Section ===== */}
-      <section className="info-section text-center mt-5 px-3">
-        <h3 className="fw-bold mb-4">Why Choose MyStore</h3>
-        <div className="row justify-content-center">
-          <div className="col-md-3 col-10 mb-4">
-            <div className="info-card p-4 shadow-sm rounded-4">
-              <Truck size={36} className="text-primary mb-3" />
-              <h5 className="fw-semibold">Fast Delivery</h5>
-              <p className="text-muted small">
-                Get your orders delivered quickly with real-time tracking.
-              </p>
-            </div>
-          </div>
-          <div className="col-md-3 col-10 mb-4">
-            <div className="info-card p-4 shadow-sm rounded-4">
-              <ShieldCheck size={36} className="text-success mb-3" />
-              <h5 className="fw-semibold">Secure Payments</h5>
-              <p className="text-muted small">
-                Multiple payment options with advanced encryption.
-              </p>
-            </div>
-          </div>
-          <div className="col-md-3 col-10 mb-4">
-            <div className="info-card p-4 shadow-sm rounded-4">
-              <Gift size={36} className="text-warning mb-3" />
-              <h5 className="fw-semibold">Exclusive Offers</h5>
-              <p className="text-muted small">
-                Unlock member-only discounts and seasonal deals.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ===== Footer ===== */}
-      <footer className="text-center mt-5 mb-3 text-light opacity-75">
-        © {new Date().getFullYear()} MyStore | All Rights Reserved.
-      </footer>
+          </p>
+        )}
+      </motion.div>
     </div>
   );
 }
-
-export default Login;
