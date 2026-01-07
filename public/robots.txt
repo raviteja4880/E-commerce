@@ -1,13 +1,9 @@
 User-agent: *
-Allow: /
-
-# Disallow internal/private routes
-Disallow: /admin
-Disallow: /checkout
+Disallow: /login
+Disallow: /register
 Disallow: /cart
-Disallow: /api
+Disallow: /checkout
 Disallow: /profile
 Disallow: /my-orders
 
-# Sitemap reference
-Sitemap: Sitemap: https://tejacommerce.netlify.app/sitemap.xml
+Sitemap: https://tejacommerce.netlify.app/sitemap.xml
