@@ -5,13 +5,13 @@ import { authAPI } from "../services/api";
 import { toast } from "react-toastify";
 import "../styles/AuthLanding.css";
 
-const OTP_DURATION = 120; // 2 minutes in seconds
+const OTP_DURATION = 120; // 2 minutes
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
-
   const [otpTimer, setOtpTimer] = useState(0);
 
   const [form, setForm] = useState({
@@ -34,9 +34,11 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
-  const startOtpTimer = () => {
-    setOtpTimer(OTP_DURATION);
-  };
+  useEffect(() => {
+    if (mode === "otp" || mode === "reset") {
+      setOtpTimer(OTP_DURATION);
+    }
+  }, [mode]);
 
   const formatTime = (seconds) => {
     const m = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -60,6 +62,7 @@ export default function Login() {
         localStorage.setItem("userInfo", JSON.stringify(data));
         localStorage.setItem("token", data.token);
         window.dispatchEvent(new Event("userUpdated"));
+
         toast.success("Welcome back!");
         navigate("/");
       }
@@ -74,7 +77,6 @@ export default function Login() {
         });
 
         toast.success("OTP sent to your email");
-        startOtpTimer();
         setMode("otp");
       }
 
@@ -85,15 +87,24 @@ export default function Login() {
           otp: form.otp,
         });
 
-        toast.success("Account verified");
-        navigate("/");
+        toast.success("Email verified. Please login.");
+
+        setForm({
+          name: "",
+          email: form.email,
+          password: "",
+          phone: "",
+          otp: "",
+          newPassword: "",
+        });
+
+        setMode("login");
       }
 
       /* ---------- FORGOT PASSWORD ---------- */
       if (mode === "forgot") {
         await authAPI.forgotPassword(form.email);
         toast.success("Reset OTP sent to your email");
-        startOtpTimer();
         setMode("reset");
       }
 
@@ -105,7 +116,7 @@ export default function Login() {
           newPassword: form.newPassword,
         });
 
-        toast.success("Password reset successfully");
+        toast.success("Password reset successful");
         setMode("login");
       }
     } catch (err) {
@@ -117,19 +128,15 @@ export default function Login() {
 
   /* ================= RESEND OTP ================= */
   const handleResendOtp = async () => {
-    if (!form.email) return toast.error("Email missing");
+    if (!form.email || otpTimer > 0) return;
 
-    const purpose =
-      mode === "otp" ? "register" : "reset_password";
+    const purpose = mode === "otp" ? "register" : "reset_password";
 
     try {
       setLoading(true);
-      await authAPI.resendOtp({
-        email: form.email,
-        purpose,
-      });
+      await authAPI.resendOtp({ email: form.email, purpose });
       toast.success("OTP resent");
-      startOtpTimer();
+      setOtpTimer(OTP_DURATION);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to resend OTP");
     } finally {
@@ -157,7 +164,6 @@ export default function Login() {
         </h2>
 
         <form onSubmit={handleSubmit}>
-          {/* REGISTER */}
           {mode === "register" && (
             <>
               <input
@@ -177,7 +183,6 @@ export default function Login() {
             </>
           )}
 
-          {/* EMAIL */}
           {(mode === "login" ||
             mode === "register" ||
             mode === "forgot" ||
@@ -186,13 +191,13 @@ export default function Login() {
               type="email"
               placeholder="Email"
               required
+              value={form.email}
               onChange={(e) =>
                 setForm({ ...form, email: e.target.value })
               }
             />
           )}
 
-          {/* PASSWORD */}
           {(mode === "login" || mode === "register") && (
             <input
               type="password"
@@ -204,7 +209,6 @@ export default function Login() {
             />
           )}
 
-          {/* OTP */}
           {(mode === "otp" || mode === "reset") && (
             <input
               placeholder="Enter OTP"
@@ -215,7 +219,6 @@ export default function Login() {
             />
           )}
 
-          {/* NEW PASSWORD */}
           {mode === "reset" && (
             <input
               type="password"
@@ -242,27 +245,23 @@ export default function Login() {
           </button>
         </form>
 
-        {/* OTP TIMER + RESEND */}
         {(mode === "otp" || mode === "reset") && (
           <p className="toggle-text">
-            <>
-              OTP expires in <strong>{formatTime(otpTimer)}</strong>
-              {otpTimer > 0 && (
-                <>
-                  {" · "}
-                  <span
-                    onClick={handleResendOtp}
-                    style={{ opacity: loading ? 0.5 : 1 }}
-                  >
-                    Resend
-                  </span>
-                </>
-              )}
-            </>
+            OTP expires in <strong>{formatTime(otpTimer)}</strong>
+            {" · "}
+            {otpTimer > 0 ? (
+              <span style={{ opacity: 0.5 }}>Resend</span>
+            ) : (
+              <span
+                onClick={handleResendOtp}
+                style={{ cursor: "pointer" }}
+              >
+                Resend
+              </span>
+            )}
           </p>
         )}
 
-        {/* FOOTER */}
         {mode === "login" && (
           <p className="toggle-text">
             <span onClick={() => setMode("forgot")}>
@@ -283,7 +282,9 @@ export default function Login() {
             ) : (
               <>
                 Already have an account?{" "}
-                <span onClick={() => setMode("login")}>Login</span>
+                <span onClick={() => setMode("login")}>
+                  Login
+                </span>
               </>
             )}
           </p>

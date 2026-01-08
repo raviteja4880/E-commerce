@@ -121,6 +121,7 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
   });
 
   const [passwords, setPasswords] = useState({
+    currentPass: "",
     newPass: "",
     confirm: "",
   });
@@ -130,6 +131,10 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
     `https://ui-avatars.com/api/?name=${encodeURIComponent(
       formData.name || "User"
     )}&background=0d6efd&color=ffffff&size=256`;
+
+    const hasAvatar =
+  Boolean(avatarPreview) &&
+  !avatarPreview.includes("ui-avatars.com");
 
   /* FETCH PROFILE */
   useEffect(() => {
@@ -177,10 +182,22 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
       }
 
       if (activeTab === "password") {
-        if (passwords.newPass !== passwords.confirm) {
-          toast.error("Passwords do not match");
+        if (!passwords.currentPass) {
+          toast.error("Please enter your current password");
           return;
         }
+
+        if (!passwords.newPass || !passwords.confirm) {
+          toast.error("Please enter and confirm your new password");
+          return;
+        }
+
+        if (passwords.newPass !== passwords.confirm) {
+          toast.error("New password and confirm password do not match");
+          return;
+        }
+
+        payload.currentPassword = passwords.currentPass;
         payload.password = passwords.newPass;
       }
 
@@ -204,11 +221,12 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
 
       toast.success("Profile updated");
       setActiveTab("profile");
-    } catch {
-      toast.error("Update failed");
-    } finally {
+      setPasswords({ currentPass: "", newPass: "", confirm: "" });
+    }catch (err) {
+      toast.error(err?.response?.data?.message || "Update failed");
+    }finally {
       setSaving(false);
-      toast.dismiss(toastId);
+      if (toastId) toast.dismiss(toastId);
     }
   };
 
@@ -298,16 +316,27 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
                 <input
                   type="password"
                   className="form-control mb-3"
+                  placeholder="Current Password"
+                  value={passwords.currentPass}
+                  onChange={(e) =>
+                    setPasswords({ ...passwords, currentPass: e.target.value })
+                  }
+                />
+
+                <input
+                  type="password"
+                  className="form-control mb-3"
                   placeholder="New Password"
                   value={passwords.newPass}
                   onChange={(e) =>
                     setPasswords({ ...passwords, newPass: e.target.value })
                   }
                 />
+
                 <input
                   type="password"
                   className="form-control"
-                  placeholder="Confirm Password"
+                  placeholder="Confirm New Password"
                   value={passwords.confirm}
                   onChange={(e) =>
                     setPasswords({ ...passwords, confirm: e.target.value })
@@ -319,11 +348,41 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
             {activeTab === "avatar" && (
               <div className="text-center">
                 <button
-                  className="btn btn-outline-primary"
+                  className="btn btn-outline-primary mb-2"
                   onClick={() => document.getElementById("avatarInput").click()}
                 >
-                  Choose New Avatar
+                  Change Avatar
                 </button>
+
+                {hasAvatar && (
+                  <button
+                    className="btn btn-outline-danger d-block mx-auto"
+                    onClick={async () => {
+                      try {
+                        setSaving(true);
+
+                        await authAPI.updateProfile({
+                          avatarUrl: null,
+                          avatarPublicId: null,
+                        });
+
+                        setAvatarPreview("");
+                        setAvatarFile(null);
+
+                        toast.success("Avatar removed");
+                        setActiveTab("profile");
+                      } catch (err) {
+                        toast.error(
+                          err?.response?.data?.message || "Failed to remove avatar"
+                        );
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                  >
+                    Remove Avatar
+                  </button>
+                )}
               </div>
             )}
 

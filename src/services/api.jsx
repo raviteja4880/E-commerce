@@ -1,16 +1,17 @@
   import axios from "axios";
 
-  // ----------------- Dynamic Base URL -----------------
-  const BASE_URL =
-    process.env.REACT_APP_API_BASE ||
-    (window.location.hostname === "localhost"
-      ? "http://localhost:5000/api"
-      : "https://ecommercebackend-ypyf.onrender.com/api");
+  // ----------------- Base URL -----------------
+  const isLocalhost = window.location.hostname === "localhost";
+
+  const BASE_URL = isLocalhost
+    ? "http://localhost:5000/api"
+    : process.env.REACT_APP_API_BASE ||
+      "https://ecommercebackend-ypyf.onrender.com/api";
 
   // ----------------- Axios instance -----------------
   const API = axios.create({
     baseURL: BASE_URL,
-    });
+  });
 
   // ----------------- Attach JWT token automatically -----------------
   API.interceptors.request.use((req) => {
