@@ -6,7 +6,7 @@ import React, {
   Suspense,
 } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { productAPI } from "../services/api";
+import { productAPI, recommendationAPI  } from "../services/api";
 import { useCart } from "../context/CartContext";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
@@ -59,9 +59,18 @@ function ProductDetails() {
       const { data: mainProduct } = await productAPI.getById(id);
       setProduct(mainProduct);
 
-      const { data: allProducts } = await productAPI.getAll();
-      const remaining = allProducts.filter((p) => p._id !== id);
-      setOtherProducts(remaining);
+      // CALL ML RECOMMENDATION API
+      const { data: recommended } =
+        await recommendationAPI.getByProduct(mainProduct.externalId);
+
+      if (recommended && recommended.length > 0) {
+        setOtherProducts(recommended);
+      } else {
+        // Fallback (your old logic)
+        const { data: allProducts } = await productAPI.getAll();
+        const remaining = allProducts.filter((p) => p._id !== id);
+        setOtherProducts(remaining);
+      }
 
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -102,7 +111,7 @@ function ProductDetails() {
         return;
       }
 
-      // 🧠 Fly-to-cart animation
+      // Fly-to-cart animation
       const clone = productImage.cloneNode(true);
       const imgRect = productImage.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();

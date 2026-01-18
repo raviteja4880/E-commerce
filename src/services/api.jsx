@@ -89,4 +89,10 @@
     markDelivered: (orderId) => API.put(`/delivery/${orderId}/deliver`),
   };
 
+  // ================= RECOMMENDATION API =================
+  export const recommendationAPI = {
+    getByProduct: (externalId) => API.get(`/recommendations/product/${externalId}`),
+    getByCart: (externalIds) => API.post(`/recommendations/cart`, {cartItems: externalIds,}),
+  };
+
   export { API };

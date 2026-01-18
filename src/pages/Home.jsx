@@ -5,13 +5,15 @@ import React, {
   useMemo,
   Suspense,
 } from "react";
-import { productAPI } from "../services/api";
+import { productAPI, recommendationAPI } from "../services/api";
 import { useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
 import "../scrollMessage.css";
+import SkeletonProductCard from "../components/SkeletonProductCard";
 
-// Lazy load heavy components
-const ProductCard = React.lazy(() => import("../components/products/ProductCard"));
+const ProductCard = React.lazy(() =>
+  import("../components/products/ProductCard")
+);
 const Loader = React.lazy(() => import("../pages/Loader"));
 
 function Home() {
@@ -22,13 +24,16 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showBanner, setShowBanner] = useState(true);
 
+  const [homeRecommendations, setHomeRecommendations] = useState([]);
+  const [loadingHomeRecs, setLoadingHomeRecs] = useState(false);
+  const [recsInitialized, setRecsInitialized] = useState(false);
+
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const selectedCategory = queryParams.get("category");
-
   const userInfo = localStorage.getItem("userInfo");
 
-  // Memoized fetchProducts to prevent re-creation
+  // ================= FETCH PRODUCTS =================
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -63,13 +68,50 @@ function Home() {
       setError("Failed to load products.");
     } finally {
       setLoading(false);
-      if (!userInfo) {
-        setTimeout(() => setShowBanner(false));
-      }
+      if (!userInfo) setTimeout(() => setShowBanner(false));
     }
   }, [selectedCategory, userInfo]);
 
-  // Memoized search function
+  // ================= HOME RECOMMENDATIONS =================
+  useEffect(() => {
+    if (recsInitialized) return;
+
+    let cancelled = false;
+
+    const fetchRecommendations = async () => {
+      setLoadingHomeRecs(true);
+
+      try {
+        const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
+        const cartExternalIds = cart
+          .map((item) => item.product?.externalId)
+          .filter(Boolean);
+
+        if (cartExternalIds.length > 0) {
+          const res = await recommendationAPI.getByCart(cartExternalIds);
+          if (!cancelled && res.data?.length) {
+            setHomeRecommendations(res.data);
+            return;
+          }
+        }
+
+        const { data: allProducts } = await productAPI.getAll();
+        setHomeRecommendations(allProducts.slice(0, 4));
+      } catch (err) {
+        console.error("Home recommendation error:", err.message);
+      } finally {
+        if (!cancelled) {
+          setLoadingHomeRecs(false);
+          setRecsInitialized(true);
+        }
+      }
+    };
+
+    fetchRecommendations();
+    return () => (cancelled = true);
+  }, [recsInitialized]);
+
+  // ================= SEARCH =================
   const handleSearch = useCallback(
     (e) => {
       const query = e.target.value.toLowerCase();
@@ -81,7 +123,6 @@ function Home() {
       }
 
       const allProducts = Object.values(groupedProducts).flat();
-
       const matches = allProducts.filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
@@ -89,21 +130,7 @@ function Home() {
           p.category.toLowerCase().includes(query)
       );
 
-      let finalResults = matches;
-      if (matches.length === 0) {
-        finalResults = allProducts
-          .filter((p) =>
-            p.name
-              .toLowerCase()
-              .split(" ")
-              .some(
-                (word) => query.includes(word) || word.includes(query.slice(0, 3))
-              )
-          )
-          .slice(0, 8);
-      }
-
-      const grouped = finalResults.reduce((acc, product) => {
+      const grouped = matches.reduce((acc, product) => {
         if (!acc[product.category]) acc[product.category] = [];
         acc[product.category].push(product);
         return acc;
@@ -120,7 +147,7 @@ function Home() {
     return () => (document.body.style.overflowX = "auto");
   }, [fetchProducts]);
 
-  // Memoize rendered product groups for performance
+  // ================= MEMOIZED GROUPS =================
   const renderedProducts = useMemo(() => {
     return Object.keys(filteredProducts).map((category) => (
       <div key={category} className="mb-5">
@@ -138,25 +165,8 @@ function Home() {
 
   return (
     <div className="container mt-4 position-relative">
-      {/* Floating Scrolling Banner */}
-      {!userInfo && showBanner && (
-        <div className="scrolling-banner-container">
-          <div className="scrolling-banner text-center fw-semibold">
-            <div className="scrolling-text">
-              <span>
-                Backend is waking up... Please wait a few seconds while we load
-                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
-              </span>
-              <span>
-                Backend is waking up... Please wait a few seconds while we load
-                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Search Bar */}
+      {/* ================= SEARCH BAR (NOW AT TOP) ================= */}
       <div
         className="d-flex justify-content-center mb-4 position-relative"
         style={{ maxWidth: "350px", margin: "0 auto" }}
@@ -186,7 +196,47 @@ function Home() {
         />
       </div>
 
-      {/* Loader */}
+      {/* ================= RECOMMENDATIONS ================= */}
+      {(loadingHomeRecs || homeRecommendations.length > 0) && (
+        <div className="mb-5">
+          <h3 className="mb-4 fw-bold text-primary">
+            Recommended for You
+          </h3>
+
+          <div className="row">
+            {loadingHomeRecs
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="col-6 col-md-3 mb-4">
+                    <SkeletonProductCard />
+                  </div>
+                ))
+              : homeRecommendations.map((product) => (
+                  <div key={product._id} className="col-6 col-md-3 mb-4">
+                    <MemoizedProductCard product={product} />
+                  </div>
+                ))}
+          </div>
+        </div>
+      )}
+
+      {/* ================= EXISTING UI ================= */}
+      {!userInfo && showBanner && (
+        <div className="scrolling-banner-container">
+          <div className="scrolling-banner text-center fw-semibold">
+            <div className="scrolling-text">
+              <span>
+                Backend is waking up... Please wait a few seconds while we load
+                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
+              </span>
+              <span>
+                Backend is waking up... Please wait a few seconds while we load
+                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading && (
         <div className="d-flex justify-content-center align-items-center mt-5">
           <Suspense fallback={<div>Loading...</div>}>
@@ -195,22 +245,6 @@ function Home() {
         </div>
       )}
 
-      {/* Error */}
-      {!loading && error && (
-        <div className="text-center mt-5 text-danger">
-          <p>{error}</p>
-          <button className="btn btn-primary" onClick={fetchProducts}>
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* No Products */}
-      {!error && !loading && Object.keys(filteredProducts).length === 0 && (
-        <p className="text-center mt-5">No products available.</p>
-      )}
-
-      {/* Products */}
       {!error && !loading && (
         <Suspense fallback={<div>Loading products...</div>}>
           {renderedProducts}
@@ -220,7 +254,7 @@ function Home() {
   );
 }
 
-// Memoized ProductCard (prevents re-rendering)
+// ================= MEMOIZED CARD =================
 const MemoizedProductCard = React.memo(function ProductCardWrapper({ product }) {
   return <ProductCard product={product} />;
 });
