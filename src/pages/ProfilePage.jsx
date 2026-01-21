@@ -93,8 +93,6 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
 
     // redirect
     navigate("/login", { replace: true });
-
-    toast.info("Logged out successfully");
   };
   
   const dropdownRef = useRef(null);

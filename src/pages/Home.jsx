@@ -72,6 +72,31 @@ function Home() {
     }
   }, [selectedCategory, userInfo]);
 
+  function getStableUserKey() {
+  const userInfo = localStorage.getItem("userInfo");
+
+  if (userInfo) {
+    try {
+      const user = JSON.parse(userInfo);
+      return (
+        user._id ||
+        user.userId ||
+        user.email ||
+        `token-${user.token?.slice(0, 10)}`
+      );
+    } catch {
+      return "guest";
+    }
+  }
+
+  let guestId = localStorage.getItem("guestId");
+  if (!guestId) {
+    guestId = crypto.randomUUID();
+    localStorage.setItem("guestId", guestId);
+  }
+  return guestId;
+}
+
   // ================= HOME RECOMMENDATIONS =================
   useEffect(() => {
     if (recsInitialized) return;
@@ -79,33 +104,39 @@ function Home() {
     let cancelled = false;
 
     const fetchRecommendations = async () => {
-      setLoadingHomeRecs(true);
+  setLoadingHomeRecs(true);
 
-      try {
-        const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
-        const cartExternalIds = cart
-          .map((item) => item.product?.externalId)
-          .filter(Boolean);
+  try {
+    const userKey = getStableUserKey();
 
-        if (cartExternalIds.length > 0) {
-          const res = await recommendationAPI.getByCart(cartExternalIds);
-          if (!cancelled && res.data?.length) {
-            setHomeRecommendations(res.data);
-            return;
-          }
-        }
+    // 1️⃣ Try cart-based ML first
+    const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
+    const cartExternalIds = cart
+      .map((item) => item.product?.externalId)
+      .filter(Boolean);
 
-        const { data: allProducts } = await productAPI.getAll();
-        setHomeRecommendations(allProducts.slice(0, 4));
-      } catch (err) {
-        console.error("Home recommendation error:", err.message);
-      } finally {
-        if (!cancelled) {
-          setLoadingHomeRecs(false);
-          setRecsInitialized(true);
-        }
+    if (cartExternalIds.length > 0) {
+      const res = await recommendationAPI.getByCart(cartExternalIds);
+      if (!cancelled && res.data?.length) {
+        setHomeRecommendations(res.data);
+        return;
       }
-    };
+    }
+
+    // 2️⃣ Fallback → HOME recommendations (Node + ML)
+    const res = await recommendationAPI.getHome(userKey);
+    if (!cancelled) {
+      setHomeRecommendations(res.data || []);
+    }
+  } catch (err) {
+    console.error("Home recommendation error:", err.message);
+  } finally {
+    if (!cancelled) {
+      setLoadingHomeRecs(false);
+      setRecsInitialized(true);
+    }
+  }
+};
 
     fetchRecommendations();
     return () => (cancelled = true);
@@ -163,6 +194,7 @@ function Home() {
     ));
   }, [filteredProducts]);
 
+  const isSearching = searchQuery.trim().length > 0;
   return (
     <div className="container mt-4 position-relative">
 
@@ -197,7 +229,7 @@ function Home() {
       </div>
 
       {/* ================= RECOMMENDATIONS ================= */}
-      {(loadingHomeRecs || homeRecommendations.length > 0) && (
+      {!isSearching && (loadingHomeRecs || homeRecommendations.length > 0) && (
         <div className="mb-5">
           <h3 className="mb-4 fw-bold text-primary">
             Recommended for You

@@ -93,6 +93,7 @@
   export const recommendationAPI = {
     getByProduct: (externalId) => API.get(`/recommendations/product/${externalId}`),
     getByCart: (externalIds) => API.post(`/recommendations/cart`, {cartItems: externalIds,}),
+    getHome: (userKey) => API.get(`/recommendations/home?userKey=${encodeURIComponent(userKey)}`)
   };
 
   export { API };
