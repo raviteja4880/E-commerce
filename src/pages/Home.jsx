@@ -31,6 +31,8 @@ function Home() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const selectedCategory = queryParams.get("category");
+  const isCategorySelected = Boolean(selectedCategory);
+
   const userInfo = localStorage.getItem("userInfo");
 
   // ================= FETCH PRODUCTS =================
@@ -109,7 +111,7 @@ function Home() {
   try {
     const userKey = getStableUserKey();
 
-    // 1️⃣ Try cart-based ML first
+    // Try cart-based ML first
     const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
     const cartExternalIds = cart
       .map((item) => item.product?.externalId)
@@ -123,7 +125,7 @@ function Home() {
       }
     }
 
-    // 2️⃣ Fallback → HOME recommendations (Node + ML)
+    // Fallback → HOME recommendations (Node + ML)
     const res = await recommendationAPI.getHome(userKey);
     if (!cancelled) {
       setHomeRecommendations(res.data || []);
@@ -195,6 +197,11 @@ function Home() {
   }, [filteredProducts]);
 
   const isSearching = searchQuery.trim().length > 0;
+    useEffect(() => {
+  if (isSearching || isCategorySelected) {
+    setHomeRecommendations([]);
+  }
+}, [isSearching, isCategorySelected]);
   return (
     <div className="container mt-4 position-relative">
 
@@ -228,28 +235,31 @@ function Home() {
         />
       </div>
 
-      {/* ================= RECOMMENDATIONS ================= */}
-      {!isSearching && (loadingHomeRecs || homeRecommendations.length > 0) && (
-        <div className="mb-5">
-          <h3 className="mb-4 fw-bold text-primary">
-            Recommended for You
-          </h3>
+     {/* ================= RECOMMENDATIONS ================= */}
+{!isSearching &&
+  !isCategorySelected &&
+  (loadingHomeRecs || homeRecommendations.length > 0) && (
+    <div className="mb-5">
+      <h3 className="mb-4 fw-bold text-primary">
+        Recommended for You
+      </h3>
 
-          <div className="row">
-            {loadingHomeRecs
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="col-6 col-md-3 mb-4">
-                    <SkeletonProductCard />
-                  </div>
-                ))
-              : homeRecommendations.map((product) => (
-                  <div key={product._id} className="col-6 col-md-3 mb-4">
-                    <MemoizedProductCard product={product} />
-                  </div>
-                ))}
-          </div>
-        </div>
-      )}
+      <div className="row">
+        {loadingHomeRecs
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="col-6 col-md-3 mb-4">
+                <SkeletonProductCard />
+              </div>
+            ))
+          : homeRecommendations.map((product) => (
+              <div key={product._id} className="col-6 col-md-3 mb-4">
+                <MemoizedProductCard product={product} />
+              </div>
+            ))}
+      </div>
+    </div>
+)}
+
 
       {/* ================= EXISTING UI ================= */}
       {!userInfo && showBanner && (
