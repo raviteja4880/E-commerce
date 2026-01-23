@@ -42,6 +42,16 @@ const Rupee = React.memo(({ value, size = "1.1rem", bold = false, color = "#28a7
   </span>
 ));
 
+const StockBadge = ({ stock }) => {
+  if (stock === 0)
+    return <span className="badge bg-danger">Out of Stock</span>;
+
+  if (stock <= 5)
+    return <span className="badge bg-warning text-dark">Low Stock</span>;
+
+  return <span className="badge bg-success">In Stock</span>;
+};
+
 function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -85,10 +95,25 @@ function ProductDetails() {
     fetchProductAndOthers();
   }, [fetchProductAndOthers]);
 
-  const handleQtyChange = useCallback((val) => {
-    if (val < 1) return;
-    setQty(val);
-  }, []);
+  useEffect(() => {
+    if (product && qty > product.countInStock) {
+      setQty(product.countInStock || 1);
+    }
+  }, [product]);
+
+  const handleQtyChange = useCallback(
+    (val) => {
+      if (val < 1) return;
+
+      if (product?.countInStock && val > product.countInStock) {
+        toast.warning(`Only ${product.countInStock} left in stock`);
+        return;
+      }
+
+      setQty(val);
+    },
+    [product]
+  );
 
   const handleAddToCart = useCallback(
     async (e) => {
@@ -99,6 +124,11 @@ function ProductDetails() {
       if (!userInfo?.token) {
         toast.warning("You need to log in to access the cart");
         navigate("/login");
+        return;
+      }
+
+      if (product.countInStock === 0) {
+        toast.error("Product is out of stock");
         return;
       }
 
@@ -250,41 +280,59 @@ function ProductDetails() {
               <Rupee value={product.price} bold size="1.4rem" />
             </h4>
 
+            <div className="mb-3 d-flex align-items-center gap-2">
+              <span className="fw-semibold">Stock:</span>
+              <span>{product.countInStock}</span>
+              <StockBadge stock={product.countInStock} />
+
+              {product.countInStock === 0 && (
+                <span className="text-danger fw-semibold ms-2">
+                  This product is currently unavailable
+                </span>
+              )}
+            </div>
+
             <p className="mb-4">{product.description}</p>
 
             <div className="d-flex align-items-center mb-4">
-              <button
-                className="btn btn-outline-secondary me-2"
-                onClick={() => handleQtyChange(qty - 1)}
-                disabled={qty <= 1}
-              >
-                -
-              </button>
-              <input
-                type="number"
-                value={qty}
-                min="1"
-                className="form-control text-center"
-                style={{ width: "70px" }}
-                onChange={(e) => handleQtyChange(Number(e.target.value))}
-              />
-              <button
-                className="btn btn-outline-secondary ms-2"
-                onClick={() => handleQtyChange(qty + 1)}
-              >
-                +
-              </button>
-            </div>
-
-            <motion.button
-              className="btn btn-primary fw-semibold px-4 py-2"
-              onClick={handleAddToCart}
-              whileTap={{ scale: 0.95 }}
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 300 }}
+            <button
+              className="btn btn-outline-secondary me-2"
+              onClick={() => handleQtyChange(qty - 1)}
+              disabled={qty <= 1}
             >
-              Add to Cart
-            </motion.button>
+              -
+            </button>
+
+            <input
+              type="number"
+              value={qty}
+              min="1"
+              max={product.countInStock}
+              className="form-control text-center"
+              style={{ width: "70px" }}
+              disabled={product.countInStock === 0}
+              onChange={(e) => handleQtyChange(Number(e.target.value))}
+            />
+
+            <button
+              className="btn btn-outline-secondary ms-2"
+              onClick={() => handleQtyChange(qty + 1)}
+              disabled={qty >= product.countInStock}
+            >
+              +
+            </button>
+          </div>
+
+          <motion.button
+            className="btn btn-primary fw-semibold px-4 py-2"
+            onClick={handleAddToCart}
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: product.countInStock === 0 ? 1 : 1.03 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            disabled={product.countInStock === 0}
+          >
+            {product.countInStock === 0 ? "Out of Stock" : "Add to Cart"}
+          </motion.button>
           </motion.div>
         </div>
 

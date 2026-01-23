@@ -71,6 +71,9 @@ const ProductCard = React.memo(({ product }) => {
     [addToCart, navigate, product]
   );
 
+  const stock = Number(product.countInStock ?? 0);
+  const out = stock <= 0;
+
   return (
     <div style={styles.card}>
       <Link
@@ -92,10 +95,25 @@ const ProductCard = React.memo(({ product }) => {
           <span style={{ fontFamily: "sans-serif", marginRight: "2px" }}>₹</span>
           {product.price.toLocaleString("en-IN")}
         </p>
+        {out && <span className="badge bg-danger mb-2">Out of Stock</span>}
+
+        {stock > 0 && stock <= 5 && (
+          <span className="badge bg-warning text-dark mb-2">
+            Only {stock} left
+          </span>
+        )}
       </Link>
 
-      <button style={styles.button} onClick={handleAddToCart}>
-        Add to Cart
+      <button
+        className="btn btn-primary w-100 fw-semibold"
+        disabled={out}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (out) return;
+          addToCart(product._id, 1);
+        }}
+      >
+        {out ? "Out of Stock" : "Add to Cart"}
       </button>
     </div>
   );

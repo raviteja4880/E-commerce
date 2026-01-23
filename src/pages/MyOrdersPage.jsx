@@ -45,12 +45,15 @@ function MyOrdersPage() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const userInfo = JSON.parse(localStorage.getItem("userInfo")); // ✅ check login
+  const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
   const fetchOrders = async () => {
     try {
       const { data } = await orderAPI.getMyOrders();
-      setOrders(data);
+
+      const activeOrders = data.filter(order => !order.isCanceled);
+
+      setOrders(activeOrders);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch orders");
     } finally {
@@ -59,7 +62,7 @@ function MyOrdersPage() {
   };
 
   useEffect(() => {
-    // ✅ only fetch if logged in
+    // only fetch if logged in
     if (userInfo?.token) {
       fetchOrders();
     } else {
@@ -106,7 +109,9 @@ function MyOrdersPage() {
             margin: "0 auto",
           }}
         >
-          {orders.map((order) => (
+        {orders
+          .filter(order => !order.isCanceled)
+          .map((order) => (
             <OrderCard key={order._id} order={order} navigate={navigate} />
           ))}
         </div>

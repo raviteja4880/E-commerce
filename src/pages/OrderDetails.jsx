@@ -165,7 +165,7 @@ const progressColor = order?.isCanceled
               {order.paymentMethod?.toUpperCase()}
             </p>
             <p>
-              <strong>Status:</strong>{" "}
+              <strong>Payment Status:</strong>{" "}
               <span
                 style={{
                   color: order.isCanceled

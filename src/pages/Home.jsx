@@ -236,30 +236,29 @@ function Home() {
       </div>
 
      {/* ================= RECOMMENDATIONS ================= */}
-{!isSearching &&
-  !isCategorySelected &&
-  (loadingHomeRecs || homeRecommendations.length > 0) && (
-    <div className="mb-5">
-      <h3 className="mb-4 fw-bold text-primary">
-        Recommended for You
-      </h3>
+      {!isSearching &&
+        !isCategorySelected &&
+        (loadingHomeRecs || homeRecommendations.length > 0) && (
+          <div className="mb-5">
+            <h3 className="mb-4 fw-bold text-primary">
+              Recommended for You
+            </h3>
 
-      <div className="row">
-        {loadingHomeRecs
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="col-6 col-md-3 mb-4">
-                <SkeletonProductCard />
-              </div>
-            ))
-          : homeRecommendations.map((product) => (
-              <div key={product._id} className="col-6 col-md-3 mb-4">
-                <MemoizedProductCard product={product} />
-              </div>
-            ))}
-      </div>
-    </div>
-)}
-
+            <div className="row">
+              {loadingHomeRecs
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="col-6 col-md-3 mb-4">
+                      <SkeletonProductCard />
+                    </div>
+                  ))
+                : homeRecommendations.map((product) => (
+                    <div key={product._id} className="col-6 col-md-3 mb-4">
+                      <MemoizedProductCard product={product} />
+                    </div>
+                  ))}
+            </div>
+          </div>
+      )}
 
       {/* ================= EXISTING UI ================= */}
       {!userInfo && showBanner && (

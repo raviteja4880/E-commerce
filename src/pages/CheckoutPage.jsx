@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import { orderAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
@@ -83,45 +83,74 @@ function CheckoutPage() {
   );
 };
 
-  // Place Order
-  const handlePlaceOrder = async () => {
-    if (!address.trim()) return toast.error("Shipping address is required!");
-    if (!mobile.trim()) return toast.error("Mobile number is required!");
-    if (!/^[6-9]\d{9}$/.test(mobile))
-      return toast.error("Enter a valid 10-digit mobile number.");
-
-    setLoading(true);
-
-    try {
-      const payload = {
-        items: cartItems.map((item) => ({
-          product: item.product?._id,
-          name: item.product?.name,
-          qty: item.qty,
-          price: item.product?.price,
-          image: item.product?.image,
-        })),
-        shippingAddress: address,
-        paymentMethod,
-        mobile,
-      };
-
-      const { data } = await orderAPI.create(payload);
-
-      // Pass selected payment method via query params
-      if (paymentMethod === "qr" || paymentMethod === "card") {
-        navigate(`/payment/${data._id}?method=${paymentMethod}`);
-      } else {
-        navigate(`/order-success/${data._id}`);
-        clearCart();
-      }
-
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Order failed");
-    } finally {
-      setLoading(false);
+useEffect(() => {
+  cartItems.forEach((item) => {
+    if (
+      item.product &&
+      item.qty > item.product.countInStock
+    ) {
+      toast.error(
+        `${item.product.name} quantity exceeds available stock`
+      );
     }
-  };
+  });
+}, [cartItems]);
+
+  // Place Order
+const handlePlaceOrder = async () => {
+  if (!address.trim()) return toast.error("Shipping address is required!");
+  if (!mobile.trim()) return toast.error("Mobile number is required!");
+  if (!/^[6-9]\d{9}$/.test(mobile))
+    return toast.error("Enter a valid 10-digit mobile number.");
+
+  // STOCK VALIDATION BEFORE ORDER
+  for (let item of cartItems) {
+    if (!item.product) {
+      toast.error("Invalid cart item. Please refresh.");
+      return;
+    }
+
+    if (item.product.countInStock === 0) {
+      toast.error(`${item.product.name} is out of stock`);
+      return;
+    }
+
+    if (item.qty > item.product.countInStock) {
+      toast.error(
+        `${item.product.name} has only ${item.product.countInStock} left`
+      );
+      return;
+    }
+  }
+
+  setLoading(true);
+
+  try {
+    const payload = {
+      items: cartItems.map((item) => ({
+        product: String(item.product._id),
+        qty: item.qty
+      })),
+      shippingAddress: address,
+      paymentMethod,
+      mobile,
+    };
+
+    const { data } = await orderAPI.create(payload);
+
+    if (paymentMethod === "qr" || paymentMethod === "card") {
+      navigate(`/payment/${data._id}?method=${paymentMethod}`);
+    } else {
+      navigate(`/order-success/${data._id}`);
+      clearCart();
+    }
+
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Order failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (cartItems.length === 0) {
     return <p className="text-center mt-5">Your cart is empty</p>;
@@ -195,7 +224,7 @@ function CheckoutPage() {
         {cartItems.map((item) => (
           <li
             className="list-group-item d-flex justify-content-between align-items-center"
-            key={item._id}
+            key={item.product?._id}
           >
             <span>
               {item.product?.name} x {item.qty}
