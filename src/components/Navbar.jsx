@@ -71,7 +71,7 @@ function Navbar() {
           to="/"
           style={{ color: "#222", fontSize: "1.4rem" }}
         >
-          MyStore
+          MyStorX
         </Link>
 
         <div className="collapse navbar-collapse">

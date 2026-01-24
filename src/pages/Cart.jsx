@@ -60,7 +60,7 @@ function Cart() {
     return;
   }
 
-  // ✅ 1. Collect ALL externalIds safely
+  // Collect ALL externalIds safely
   const externalIds = cartItems
     .map(i => i.product?.externalId)
     .filter(Boolean);
@@ -70,7 +70,7 @@ function Cart() {
     return;
   }
 
-  // ✅ 2. SORT to make cache key STABLE
+  // SORT to make cache key STABLE
   const sortedIds = [...externalIds].sort();
 
   const cacheKey = `cart-recs-${sortedIds.join("_")}`;

@@ -11,7 +11,7 @@ export default function SplashScreen() {
       exit={{ opacity: 0 }}
     >
       <ShoppingBag size={64} className="brand-icon" />
-      <h1 className="brand-title">MyStore</h1>
+      <h1 className="brand-title">MyStorX</h1>
       <p className="brand-sub">Shop Smart. Live Better.</p>
     </motion.div>
   );

@@ -46,7 +46,7 @@ const StockBadge = ({ stock }) => {
   if (stock === 0)
     return <span className="badge bg-danger">Out of Stock</span>;
 
-  if (stock <= 5)
+  if (stock <= 10)
     return <span className="badge bg-warning text-dark">Low Stock</span>;
 
   return <span className="badge bg-success">In Stock</span>;

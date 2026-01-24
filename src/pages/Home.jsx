@@ -16,6 +16,36 @@ const ProductCard = React.lazy(() =>
 );
 const Loader = React.lazy(() => import("../pages/Loader"));
 
+// ================= HASH & SEED FUNCTIONS =================
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+function mulberry32(a) {
+  return function () {
+    let t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle(array, seed) {
+  let result = [...array];
+  let rand = mulberry32(hashCode(seed));
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function Home() {
   const [groupedProducts, setGroupedProducts] = useState({});
   const [filteredProducts, setFilteredProducts] = useState({});
@@ -53,6 +83,8 @@ function Home() {
         );
       }
 
+      const userSeed = getStableUserKey();
+
       const grouped = filtered.reduce((acc, product) => {
         if (!acc[product.category]) acc[product.category] = [];
         acc[product.category].push(product);
@@ -60,7 +92,13 @@ function Home() {
       }, {});
 
       Object.keys(grouped).forEach((cat) => {
-        grouped[cat].sort((a, b) => a.name.localeCompare(b.name));
+        let items = grouped[cat];
+
+        // Shuffle uniquely per user
+        items = seededShuffle(items, userSeed + cat);
+
+        // ALWAYS limit to 2 rows
+        grouped[cat] = items.slice(0, 8);
       });
 
       setGroupedProducts(grouped);
@@ -98,6 +136,21 @@ function Home() {
   }
   return guestId;
 }
+  // ================= SCROLL POSITION =================
+  useEffect(() => {
+    if (loading) return; 
+
+    const savedScroll = sessionStorage.getItem("homeScroll");
+
+    if (savedScroll) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: Number(savedScroll),
+          behavior: "instant",
+        });
+      }, 50);
+    }
+  }, [loading]);
 
   // ================= HOME RECOMMENDATIONS =================
   useEffect(() => {
@@ -150,12 +203,14 @@ function Home() {
       const query = e.target.value.toLowerCase();
       setSearchQuery(query);
 
+      // Reset when empty search
       if (!query.trim()) {
         setFilteredProducts(groupedProducts);
         return;
       }
 
       const allProducts = Object.values(groupedProducts).flat();
+
       const matches = allProducts.filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
@@ -163,13 +218,8 @@ function Home() {
           p.category.toLowerCase().includes(query)
       );
 
-      const grouped = matches.reduce((acc, product) => {
-        if (!acc[product.category]) acc[product.category] = [];
-        acc[product.category].push(product);
-        return acc;
-      }, {});
-
-      setFilteredProducts(grouped);
+      // Store flat list instead of grouped
+      setFilteredProducts({ __searchResults: matches });
     },
     [groupedProducts]
   );
@@ -182,6 +232,25 @@ function Home() {
 
   // ================= MEMOIZED GROUPS =================
   const renderedProducts = useMemo(() => {
+    if (filteredProducts.__searchResults) {
+      return (
+        <div className="mb-5">
+          <h4 className="mb-3 fw-semibold">
+            Search Results ({filteredProducts.__searchResults.length})
+          </h4>
+
+          <div className="row">
+            {filteredProducts.__searchResults.map((product) => (
+              <div key={product._id} className="col-6 col-md-3 mb-4">
+                <MemoizedProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // NORMAL MODE → grouped by category
     return Object.keys(filteredProducts).map((category) => (
       <div key={category} className="mb-5">
         <h3 className="mb-4 text-capitalize fw-semibold">{category}</h3>

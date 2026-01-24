@@ -76,10 +76,13 @@ const ProductCard = React.memo(({ product }) => {
 
   return (
     <div style={styles.card}>
-      <Link
-        to={`/product/${product._id}`}
-        style={{ textDecoration: "none", color: "inherit", flex: 1 }}
-      >
+    <Link
+      to={`/product/${product._id}`}
+      onClick={() => {
+        sessionStorage.setItem("homeScroll", window.scrollY);
+      }}
+      style={{ textDecoration: "none", color: "inherit", flex: 1 }}
+    >
         <div style={styles.imageWrapper}>
           {/* Lazy-loaded image */}
           <img

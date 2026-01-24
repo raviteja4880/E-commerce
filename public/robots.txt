@@ -8,4 +8,4 @@ Disallow: /checkout
 Disallow: /profile
 Disallow: /my-orders
 
-Sitemap: https://tejacommerce.netlify.app/sitemap.xml
+Sitemap: https://mystorx.netlify.app/sitemap.xml
