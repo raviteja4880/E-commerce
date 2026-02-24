@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import Loader from "../pages/Loader";
@@ -7,33 +7,7 @@ import RequireLogin from "../components/RequireLogin";
 import { recommendationAPI } from "../services/api";
 import ProductCard from "../components/products/ProductCard";
 import SkeletonProductCard from "../components/SkeletonProductCard";
-
-// Consistent Rupee formatter
-const Rupee = ({ value, size = "1rem", bold = false, color = "#000" }) => (
-  <span
-    style={{
-      fontFamily:
-        "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      fontSize: size,
-      fontWeight: bold ? 600 : 500,
-      color,
-      display: "inline-flex",
-      alignItems: "baseline",
-      gap: "2px",
-    }}
-  >
-    <span
-      style={{
-        fontFamily: "sans-serif",
-        fontWeight: 600,
-        transform: "translateY(-0.5px)",
-      }}
-    >
-      ₹
-    </span>
-    <span>{value?.toLocaleString("en-IN")}</span>
-  </span>
-);
+import Rupee from "../components/common/Rupee";
 
 function Cart() {
   const { state, updateCartQty, removeFromCart, clearCart } = useCart();
@@ -105,11 +79,11 @@ function Cart() {
       <p className="text-center mt-5 text-danger fw-semibold">{error}</p>
     );
 
-  // EXISTING HANDLER (UNCHANGED)
-  const handleQuantityChange = (productId, value) => {
+  // Memoized handler for quantity changes
+  const handleQuantityChange = useCallback((productId, value) => {
     const qty = Math.max(1, Number(value) || 1);
     updateCartQty(productId, qty);
-  };
+  }, [updateCartQty]);
 
   return (
     <RequireLogin>

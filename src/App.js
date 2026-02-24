@@ -5,8 +5,6 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
-
 import Navbar from "./components/Navbar";
 import MobileBottomNav from "./components/MobileBottomNav";
 import SplashScreen from "./components/SplashScreen";
@@ -66,42 +64,68 @@ function Layout({ children }) {
   );
 }
 
-
 function App() {
-  const [showSplash, setShowSplash] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const seen = sessionStorage.getItem("splashSeen");
-    if (!seen) {
-      setShowSplash(true);
-      setTimeout(() => {
-        sessionStorage.setItem("splashSeen", "true");
-        setShowSplash(false);
-      }, 1800);
+
+    if (seen) {
+      setShowSplash(false);
+      return;
     }
+
+    const timer = setTimeout(() => {
+      sessionStorage.setItem("splashSeen", "true");
+      setShowSplash(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  if (showSplash) {
+    return <SplashScreen />;
+  }
 
   return (
     <CartProvider>
       <Router>
-        <AnimatePresence>{showSplash && <SplashScreen />}</AnimatePresence>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/product/:id" element={<ProductDetails />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/my-orders" element={<MyOrdersPage />} />
+            <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <CheckoutPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/:orderId"
+              element={
+                <ProtectedRoute>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/order-success/:orderId"
+              element={
+                <ProtectedRoute>
+                  <OrderDetails />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Layout>
 
-        {!showSplash && (
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/product/:id" element={<ProductDetails />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/categories" element={<CategoriesPage />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/my-orders" element={<MyOrdersPage />} />
-              <Route path="/checkout" element={<ProtectedRoute> <CheckoutPage /> </ProtectedRoute>} />
-              <Route path="/payment/:orderId" element={<ProtectedRoute> <PaymentPage /> </ProtectedRoute>} />
-              <Route path="/order-success/:orderId" element={<ProtectedRoute> <OrderDetails /> </ProtectedRoute>} />
-            </Routes>
-          </Layout>
-        )}
         <ToastContainer position="top-right" theme="colored" />
       </Router>
     </CartProvider>

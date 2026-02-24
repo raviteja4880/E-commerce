@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { FaShoppingCart, FaBoxOpen, FaHome } from "react-icons/fa";
 import { authAPI } from "../services/api";
-import "../styles/ProductCard.css";
+import "../styles/Navbar.css";
 
 function Navbar() {
   const navigate = useNavigate();

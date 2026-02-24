@@ -1,0 +1,45 @@
+/* Skeleton Product Card Styles */
+.skeleton-card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  height: 300px;
+}
+
+.skeleton-image {
+  height: 180px;
+  background-color: #e0e0e0;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.skeleton-text {
+  height: 14px;
+  background: #e0e0e0;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+.skeleton-text-short {
+  height: 12px;
+  background: #e0e0e0;
+  width: 60%;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.skeleton-animate {
+  animation: pulse 1.4s infinite;
+}

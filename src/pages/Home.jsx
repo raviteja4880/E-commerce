@@ -8,43 +8,14 @@ import React, {
 import { productAPI, recommendationAPI } from "../services/api";
 import { useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
-import "../scrollMessage.css";
+import "../styles/scrollMessage.css";
 import SkeletonProductCard from "../components/SkeletonProductCard";
+import { getStableUserKey, seededShuffle } from "../utils/helpers";
 
 const ProductCard = React.lazy(() =>
   import("../components/products/ProductCard")
 );
 const Loader = React.lazy(() => import("../pages/Loader"));
-
-// ================= HASH & SEED FUNCTIONS =================
-function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-}
-
-function mulberry32(a) {
-  return function () {
-    let t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ t >>> 15, t | 1);
-    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
-
-function seededShuffle(array, seed) {
-  let result = [...array];
-  let rand = mulberry32(hashCode(seed));
-
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
 
 function Home() {
   const [groupedProducts, setGroupedProducts] = useState({});
@@ -84,25 +55,32 @@ function Home() {
       }
 
       const userSeed = getStableUserKey();
-
       const grouped = filtered.reduce((acc, product) => {
-        if (!acc[product.category]) acc[product.category] = [];
-        acc[product.category].push(product);
-        return acc;
-      }, {});
+      if (!acc[product.category]) acc[product.category] = [];
+      acc[product.category].push(product);
+      return acc;
+    }, {});
 
-      Object.keys(grouped).forEach((cat) => {
-        let items = grouped[cat];
+    // Shuffle categories first
+    const shuffledCategoryKeys = seededShuffle(
+      Object.keys(grouped),
+      userSeed + "_categories"
+    );
 
-        // Shuffle uniquely per user
-        items = seededShuffle(items, userSeed + cat);
+    const finalGrouped = {};
 
-        // ALWAYS limit to 2 rows
-        grouped[cat] = items.slice(0, 8);
-      });
+    shuffledCategoryKeys.forEach((cat) => {
+      const shuffledProducts = seededShuffle(
+        grouped[cat],
+        userSeed + cat
+      );
 
-      setGroupedProducts(grouped);
-      setFilteredProducts(grouped);
+      finalGrouped[cat] = shuffledProducts.slice(0, 8);
+    });
+
+    setGroupedProducts(finalGrouped);
+    setFilteredProducts(finalGrouped);
+
     } catch (err) {
       console.error("Products fetch error:", err.response?.data || err.message);
       setError("Failed to load products.");
@@ -112,30 +90,6 @@ function Home() {
     }
   }, [selectedCategory, userInfo]);
 
-  function getStableUserKey() {
-  const userInfo = localStorage.getItem("userInfo");
-
-  if (userInfo) {
-    try {
-      const user = JSON.parse(userInfo);
-      return (
-        user._id ||
-        user.userId ||
-        user.email ||
-        `token-${user.token?.slice(0, 10)}`
-      );
-    } catch {
-      return "guest";
-    }
-  }
-
-  let guestId = localStorage.getItem("guestId");
-  if (!guestId) {
-    guestId = crypto.randomUUID();
-    localStorage.setItem("guestId", guestId);
-  }
-  return guestId;
-}
   // ================= SCROLL POSITION =================
   useEffect(() => {
     if (loading) return; 
