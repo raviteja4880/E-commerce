@@ -1,0 +1,226 @@
+.myorders-page-wrapper {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #e8f4ff 0%, #ffffff 50%, #e8f4ff 100%);
+  padding: 32px 16px;
+  position: relative;
+}
+
+/* Glow effect */
+.myorders-page-wrapper::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(13, 110, 253, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(80px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.myorders-page-wrapper .container-fluid {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.myorders-page-wrapper h2 {
+  color: #0d6efd !important;
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 32px;
+}
+
+/* Order Grid */
+.order-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* Order Card */
+.order-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 
+    0 10px 40px rgba(13, 110, 253, 0.1),
+    0 0 0 1px rgba(13, 110, 253, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  border: none;
+}
+
+.order-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 15px 50px rgba(13, 110, 253, 0.15),
+    0 0 0 1px rgba(13, 110, 253, 0.1);
+}
+
+/* Card Header */
+.order-card .border-bottom {
+  border-bottom: 1px solid #f0f0f0 !important;
+  background: #f8faff;
+  padding: 14px 20px !important;
+}
+
+.order-card .border-bottom strong {
+  color: #0d6efd;
+  font-size: 0.95rem;
+}
+
+/* Items */
+.order-card .p-3 {
+  padding: 20px !important;
+}
+
+.order-card .p-3 img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid #f0f0f0;
+  transition: transform 0.3s ease;
+}
+
+.order-card .p-3 img:hover {
+  transform: scale(1.1);
+}
+
+.order-card .p-3 .fw-semibold {
+  color: #0d6efd;
+  font-weight: 600;
+}
+
+/* Total Section */
+.order-card .border-top.border-bottom {
+  background: #f8faff !important;
+  padding: 14px 20px !important;
+  border-color: #e5e5e5 !important;
+}
+
+.order-card .border-top.border-bottom span:first-child {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Status Section */
+.order-card .px-3.py-3 {
+  padding: 16px 20px !important;
+}
+
+/* Status Badge */
+.order-card .badge {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.order-card .badge:hover {
+  transform: scale(1.02);
+}
+
+/* Buttons */
+.order-card .btn {
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.order-card .btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  border: none;
+}
+
+.order-card .btn-success:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+}
+
+.order-card .btn:not(.btn-success) {
+  border: 2px solid #0d6efd;
+  color: #0d6efd;
+  background: transparent;
+}
+
+.order-card .btn:not(.btn-success):hover {
+  background: #0d6efd;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.25);
+}
+
+/* Dropdown */
+.order-card .dropdown-fade {
+  animation: dropdownSlide 0.2s ease;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.order-card .dropdown-item {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.order-card .dropdown-item:hover {
+  background: #f0f7ff;
+  color: #0d6efd;
+}
+
+/* Footer */
+.order-card .text-center.border-top {
+  background: #f8faff;
+  padding: 14px 20px !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Empty State */
+.myorders-page-wrapper .text-center.mt-5 {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .myorders-page-wrapper {
+    padding: 20px 12px;
+  }
+
+  .myorders-page-wrapper h2 {
+    font-size: 1.5rem;
+    margin-bottom: 24px;
+  }
+
+  .order-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-card {
+    border-radius: 16px;
+  }
+}

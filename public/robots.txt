@@ -1,11 +1,20 @@
+# Robots.txt for MyStorX
 User-agent: *
 Allow: /
 
+# Disallow private/auth pages
 Disallow: /login
-Disallow: /register
-Disallow: /cart
 Disallow: /checkout
 Disallow: /profile
 Disallow: /my-orders
+Disallow: /payment
 
+# Allow cart for SEO
+Allow: /cart
+Allow: /categories
+
+# Sitemap location
 Sitemap: https://mystorx.netlify.app/sitemap.xml
+
+# Crawl-delay (optional, for politeness)
+Crawl-delay: 1

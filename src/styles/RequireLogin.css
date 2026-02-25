@@ -1,0 +1,123 @@
+.require-login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e8f4ff 0%, #ffffff 50%, #e8f4ff 100%);
+  padding: 20px;
+  position: relative;
+}
+
+/* Glow effect */
+.require-login-wrapper::before {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(13, 110, 253, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(60px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.require-login-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 48px 40px;
+  text-align: center;
+  box-shadow: 
+    0 10px 40px rgba(13, 110, 253, 0.1),
+    0 0 0 1px rgba(13, 110, 253, 0.05);
+  position: relative;
+  z-index: 1;
+  max-width: 400px;
+  width: 100%;
+}
+
+/* Lock Icon */
+.lock-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #e8f4ff 0%, #d0e8ff 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0d6efd;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 15px rgba(13, 110, 253, 0);
+  }
+}
+
+/* Title */
+.require-title {
+  color: #0d6efd;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* Text */
+.require-text {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.require-text strong {
+  color: #0d6efd;
+}
+
+/* Button */
+.require-login-card .btn-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.require-login-card .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(13, 110, 253, 0.35);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .require-login-card {
+    padding: 36px 24px;
+    border-radius: 16px;
+  }
+
+  .lock-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .lock-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .require-title {
+    font-size: 1.25rem;
+  }
+}

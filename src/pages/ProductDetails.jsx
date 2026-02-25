@@ -95,12 +95,6 @@ function ProductDetails() {
     fetchProductAndOthers();
   }, [fetchProductAndOthers]);
 
-  useEffect(() => {
-    if (product && qty > product.countInStock) {
-      setQty(product.countInStock || 1);
-    }
-  }, [product]);
-
   const handleQtyChange = useCallback(
     (val) => {
       if (val < 1) return;
@@ -209,6 +203,13 @@ function ProductDetails() {
       )),
     [otherProducts, handleRecommendedClick]
   );
+
+  // Validate quantity when product changes
+  useEffect(() => {
+    if (product && qty > product.countInStock) {
+      setQty(product.countInStock || 1);
+    }
+  }, [product, qty]);
 
   if (loading)
     return (

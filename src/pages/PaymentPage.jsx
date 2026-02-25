@@ -25,26 +25,35 @@ function PaymentPage() {
     cvv: "",
   });
   const [cardErrors, setCardErrors] = useState({});
+  const [paymentInitiated, setPaymentInitiated] = useState(false);
   const pollingRef = useRef(null);
 
-  // ===== FETCH ORDER =====
+  // ===== FETCH ORDER & AUTO-GENERATE QR =====
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchOrderAndInitQr = async () => {
       try {
         const { data } = await orderAPI.getById(orderId);
         setOrder(data);
+
+        if (initialMethod === "qr") {
+          try {
+            const payload = { orderId, amount: data.totalPrice, method: "qr" };
+            const { data: qrData } = await paymentAPI.initiate(payload);
+            setQrCode(qrData.qrCodeUrl);
+            startPolling();
+          } catch (qrErr) {
+            console.error("QR generation failed:", qrErr.message);
+          }
+        }
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load order");
       }
     };
-    fetchOrder();
+
+    fetchOrderAndInitQr();
+    
     return () => pollingRef.current && clearInterval(pollingRef.current);
   }, [orderId]);
-
-  // ===== AUTO-INITIATE QR =====
-  useEffect(() => {
-    if (method === "qr" && order) handleInitiatePayment();
-  }, [method, order]);
 
   // ===== CARD VALIDATION =====
   const validateCardDetails = () => {
@@ -61,6 +70,8 @@ function PaymentPage() {
 
   // ===== INITIATE PAYMENT =====
   const handleInitiatePayment = async () => {
+    if (method === "card" && !validateCardDetails()) return;
+    
     setLoading(true);
     try {
       const payload = {
@@ -70,10 +81,13 @@ function PaymentPage() {
         ...(method === "card" ? { cardDetails } : {}),
       };
       const { data } = await paymentAPI.initiate(payload);
+      
       if (method === "qr") {
         setQrCode(data.qrCodeUrl);
         startPolling();
       }
+      
+      setPaymentInitiated(true);
     } catch {
       toast.error("Payment initiation failed");
     } finally {
@@ -81,7 +95,7 @@ function PaymentPage() {
     }
   };
 
-  // ===== CONFIRM PAYMENT =====
+  // ===== CONFIRM PAYMENT - This sends email and marks as paid =====
   const handleConfirmPayment = async () => {
     if (method === "card" && !validateCardDetails()) return;
 
@@ -196,47 +210,44 @@ function PaymentPage() {
       {/* ===== QR PAYMENT ===== */}
       {method === "qr" && (
         <div className="text-center mt-4">
-          {!qrCode && loading ? (
-            <div
-              className="d-flex flex-column align-items-center justify-content-center border rounded-4 shadow-sm p-4"
-              style={{ height: 260 }}
-            >
-              <div className="spinner-border text-primary mb-3" role="status" />
-              <p className="text-muted fw-semibold">
-                Generating secure payment QR...
+          {!qrCode ? (
+            <div className="p-4 border rounded-4 shadow-sm d-inline-block bg-light">
+              <p className="text-muted fw-semibold mb-3">
+                Generating QR Code for payment of ₹{order.totalPrice}...
               </p>
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
             </div>
           ) : (
-            qrCode && (
-              <div className="p-4 border rounded-4 shadow-sm d-inline-block bg-light">
-                <img
-                  src={qrCode}
-                  alt="QR Code"
-                  className="rounded-3 shadow-sm"
-                  style={{ width: 220, height: 220 }}
-                />
-                <p className="mt-3 text-muted fw-semibold">
-                  Scan this QR to pay ₹{order.totalPrice}.
-                </p>
-                <button
-                  className="btn btn-success px-4 fw-semibold mt-2"
-                  onClick={handleConfirmPayment}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                      />
-                      Confirming...
-                    </>
-                  ) : (
-                    "I Have Paid"
-                  )}
-                </button>
-              </div>
-            )
+            <div className="p-4 border rounded-4 shadow-sm d-inline-block bg-light">
+              <img
+                src={qrCode}
+                alt="QR Code"
+                className="rounded-3 shadow-sm"
+                style={{ width: 220, height: 220 }}
+              />
+              <p className="mt-3 text-muted fw-semibold">
+                Scan this QR to pay ₹{order.totalPrice}.
+              </p>
+              <button
+                className="btn btn-success px-4 fw-semibold mt-2"
+                onClick={handleConfirmPayment}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-2"
+                      role="status"
+                    />
+                    Confirming...
+                  </>
+                ) : (
+                  "I Have Paid"
+                )}
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -301,26 +312,37 @@ function PaymentPage() {
             </div>
           </div>
 
-          <button
-            className="btn btn-primary w-100 mt-4 py-2 fw-semibold rounded-3"
-            onClick={() => {
-              handleInitiatePayment();
-              setTimeout(() => handleConfirmPayment(), 1000);
-            }}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span
-                  className="spinner-border spinner-border-sm me-2"
-                  role="status"
-                />
-                Processing...
-              </>
-            ) : (
-              "Pay Now"
-            )}
-          </button>
+          {!paymentInitiated ? (
+            <button
+              className="btn btn-primary w-100 mt-4 py-2 fw-semibold rounded-3"
+              onClick={handleInitiatePayment}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" />
+                  Processing...
+                </>
+              ) : (
+                "Proceed to Pay"
+              )}
+            </button>
+          ) : (
+            <button
+              className="btn btn-success w-100 mt-4 py-2 fw-semibold rounded-3"
+              onClick={handleConfirmPayment}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" />
+                  Confirming...
+                </>
+              ) : (
+                "I Have Paid"
+              )}
+            </button>
+          )}
         </div>
       )}
 

@@ -220,11 +220,13 @@ function Home() {
   }, [filteredProducts]);
 
   const isSearching = searchQuery.trim().length > 0;
-    useEffect(() => {
-  if (isSearching || isCategorySelected) {
-    setHomeRecommendations([]);
-  }
-}, [isSearching, isCategorySelected]);
+
+  useEffect(() => {
+    if (isSearching || isCategorySelected) {
+      setHomeRecommendations([]);
+    }
+  }, [isSearching, isCategorySelected]);
+
   return (
     <div className="container mt-4 position-relative">
 

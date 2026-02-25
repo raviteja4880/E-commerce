@@ -4,6 +4,7 @@ import { orderAPI } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { IndianRupee, MapPin, Smartphone, CreditCard, Home } from "lucide-react";
+import "../styles/Checkout.css";
 
 function CheckoutPage() {
   const { state, clearCart } = useCart();
@@ -21,80 +22,99 @@ function CheckoutPage() {
   );
 
   const handleUseLocation = async () => {
-  if (!navigator.geolocation) {
-    toast.error("Geolocation not supported.");
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    async ({ coords }) => {
-      const { latitude, longitude } = coords;
-
-      try {
-        const res = await fetch(
-          `https://us1.locationiq.com/v1/reverse.php?key=pk.ddf94865508fa900df1c5c04e8e973b6&lat=${latitude}&lon=${longitude}&format=json`
-        );
-
-        const data = await res.json();
-        console.log("LocationIQ Response:", data);
-
-        if (!data || !data.address) {
-          toast.error("Unable to fetch address.");
-          return;
-        }
-
-        const a = data.address;
-
-        const village =
-          a.village ||
-          a.hamlet ||
-          a.locality ||
-          a.suburb ||
-          a.town ||
-          "";
-
-        const mandal =
-          a.county ||   
-          a.state_district ||
-          "";
-
-        const district =
-          a.city ||
-          a.district ||
-          a.county || 
-          "";
-
-        const state = a.state || "";
-        const pincode = a.postcode || "";
-        const country = a.country || "";
-
-        const finalAddress = `${village ? village + ", " : ""}${mandal ? mandal + ", " : ""}${district ? district + ", " : ""}${state ? state + ", " : ""}${pincode ? pincode + ", " : ""}${country}`.trim();
-
-        setAddress(finalAddress);
-
-        toast.success("Location detected!");
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to fetch location");
-      }
-    },
-    () => toast.error("Location access denied"),
-    { enableHighAccuracy: true }
-  );
-};
-
-useEffect(() => {
-  cartItems.forEach((item) => {
-    if (
-      item.product &&
-      item.qty > item.product.countInStock
-    ) {
-      toast.error(
-        `${item.product.name} quantity exceeds available stock`
-      );
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported.");
+      return;
     }
-  });
-}, [cartItems]);
+
+    // Show loading toast
+    const loadingToast = toast.loading("Fetching your location...");
+
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        const { latitude, longitude } = coords;
+
+        try {
+          toast.update(loadingToast, { 
+            render: "Getting address details...", 
+            type: "info", 
+            isLoading: true 
+          });
+
+          const res = await fetch(
+            `https://us1.locationiq.com/v1/reverse.php?key=pk.ddf94865508fa900df1c5c04e8e973b6&lat=${latitude}&lon=${longitude}&format=json`
+          );
+
+          const data = await res.json();
+          console.log("LocationIQ Response:", data);
+
+          if (!data || !data.address) {
+            toast.dismiss(loadingToast);
+            toast.error("Unable to fetch address.");
+            return;
+          }
+
+          const a = data.address;
+
+          const village =
+            a.village ||
+            a.hamlet ||
+            a.locality ||
+            a.suburb ||
+            a.town ||
+            "";
+
+          const mandal =
+            a.county ||   
+            a.state_district ||
+            "";
+
+          const district =
+            a.city ||
+            a.district ||
+            a.county || 
+            "";
+
+          const state = a.state || "";
+          const pincode = a.postcode || "";
+          const country = a.country || "";
+
+          const finalAddress = `${village ? village + ", " : ""}${mandal ? mandal + ", " : ""}${district ? district + ", " : ""}${state ? state + ", " : ""}${pincode ? pincode + ", " : ""}${country}`.trim();
+
+          setAddress(finalAddress);
+
+          toast.dismiss(loadingToast);
+          toast.success("Location detected!");
+        } catch (error) {
+          console.error(error);
+          toast.dismiss(loadingToast);
+          toast.error("Failed to fetch location");
+        }
+      },
+      (error) => {
+        toast.dismiss(loadingToast);
+        if (error.code === error.PERMISSION_DENIED) {
+          toast.error("Location access denied");
+        } else {
+          toast.error("Failed to get location");
+        }
+      },
+      { enableHighAccuracy: true }
+    );
+  };
+
+  useEffect(() => {
+    cartItems.forEach((item) => {
+      if (
+        item.product &&
+        item.qty > item.product.countInStock
+      ) {
+        toast.error(
+          `${item.product.name} quantity exceeds available stock`
+        );
+      }
+    });
+  }, [cartItems]);
 
   // Place Order
   const handlePlaceOrder = async () => {

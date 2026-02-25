@@ -17,6 +17,11 @@ function Cart() {
   const [recommendations, setRecommendations] = useState([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
 
+  const handleQuantityChange = useCallback((productId, value) => {
+    const qty = Math.max(1, Number(value) || 1);
+    updateCartQty(productId, qty);
+  }, [updateCartQty]);
+
   useEffect(() => {
     const newItem = sessionStorage.getItem("cartAnimation");
     if (newItem) {
@@ -28,62 +33,56 @@ function Cart() {
     }
   }, []);
 
- useEffect(() => {
-  if (!cartItems.length) {
-    setRecommendations([]);
-    return;
-  }
-
-  // Collect ALL externalIds safely
-  const externalIds = cartItems
-    .map(i => i.product?.externalId)
-    .filter(Boolean);
-
-  if (!externalIds.length) {
-    setRecommendations([]);
-    return;
-  }
-
-  // SORT to make cache key STABLE
-  const sortedIds = [...externalIds].sort();
-
-  const cacheKey = `cart-recs-${sortedIds.join("_")}`;
-  const cached = sessionStorage.getItem(cacheKey);
-
-  if (cached) {
-    setRecommendations(JSON.parse(cached));
-    return;
-  }
-
-  setLoadingRecs(true);
-
-  recommendationAPI
-    .getByCart(sortedIds) 
-    .then(res => {
-      const recs = Array.isArray(res.data) ? res.data : [];
-      setRecommendations(recs);
-      sessionStorage.setItem(cacheKey, JSON.stringify(recs));
-    })
-    .catch(err => {
-      console.error("Cart recommendations failed:", err.message);
+  useEffect(() => {
+    if (!cartItems.length) {
       setRecommendations([]);
-    })
-    .finally(() => setLoadingRecs(false));
+      return;
+    }
 
-}, [cartItems]);
+    // Collect ALL externalIds safely
+    const externalIds = cartItems
+      .map(i => i.product?.externalId)
+      .filter(Boolean);
 
+    if (!externalIds.length) {
+      setRecommendations([]);
+      return;
+    }
 
+    // SORT to make cache key STABLE
+    const sortedIds = [...externalIds].sort();
+
+    const cacheKey = `cart-recs-${sortedIds.join("_")}`;
+    const cached = sessionStorage.getItem(cacheKey);
+
+    if (cached) {
+      setRecommendations(JSON.parse(cached));
+      return;
+    }
+
+    setLoadingRecs(true);
+
+    recommendationAPI
+      .getByCart(sortedIds)
+      .then(res => {
+        const recs = Array.isArray(res.data) ? res.data : [];
+        setRecommendations(recs);
+        sessionStorage.setItem(cacheKey, JSON.stringify(recs));
+      })
+      .catch(err => {
+        console.error("Cart recommendations failed:", err.message);
+        setRecommendations([]);
+      })
+      .finally(() => setLoadingRecs(false));
+
+  }, [cartItems]);
+
+  // Early returns - AFTER all hooks
   if (loading) return <Loader />;
   if (error)
     return (
       <p className="text-center mt-5 text-danger fw-semibold">{error}</p>
     );
-
-  // Memoized handler for quantity changes
-  const handleQuantityChange = useCallback((productId, value) => {
-    const qty = Math.max(1, Number(value) || 1);
-    updateCartQty(productId, qty);
-  }, [updateCartQty]);
 
   return (
     <RequireLogin>

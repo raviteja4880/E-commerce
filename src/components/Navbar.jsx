@@ -38,7 +38,6 @@ function Navbar() {
   useEffect(() => {
     loadProfile();
 
-    // listen for profile updates (avatar change, logout, etc.)
     const handler = () => loadProfile();
     window.addEventListener("userUpdated", handler);
 
@@ -54,6 +53,7 @@ function Navbar() {
     )}&background=87cefa&color=ffffff&size=128`;
   };
 
+  // Early return AFTER all hooks - this is correct
   if (loading) return null;
 
   return (
@@ -89,14 +89,18 @@ function Navbar() {
               <>
                 {/* Cart */}
                 <li className="nav-item">
-                  <Link className="nav-link d-flex gap-2 position-relative" to="/cart">
+                  <Link 
+                    id="cart-icon"
+                    className="nav-link d-flex gap-2 position-relative" 
+                    to="/cart"
+                  >
                     <FaShoppingCart size={20} />
                     {cartCount > 0 && (
                       <span className="badge bg-primary position-absolute top-0 start-100 translate-middle">
                         {cartCount}
                       </span>
                     )}
-                    Cart
+                    <span className="d-none d-lg-inline">Cart</span>
                   </Link>
                 </li>
 

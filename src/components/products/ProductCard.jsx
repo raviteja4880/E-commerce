@@ -21,52 +21,72 @@ const ProductCard = React.memo(({ product }) => {
         return;
       }
 
-      const productImage = e.currentTarget.closest("div").querySelector("img");
-      const cartIcon = document.getElementById("cart-icon");
-      if (!cartIcon || !productImage) return;
+      const cardElement = e.currentTarget.closest(".product-card") || e.currentTarget.closest("div[style*='flex']");
+      const productImage = cardElement?.querySelector("img");
+      
+      let cartIcon = document.getElementById("cart-icon");
+      
+      if (!cartIcon) {
+        const mobileCartIcon = document.querySelector(".mobile-bottom-nav .cart");
+        if (mobileCartIcon) {
+          cartIcon = mobileCartIcon;
+        }
+      }
+      
+      if (!cartIcon || !productImage) {
+        addToCart(product._id, 1)
+          .then(() => toast.success("Added to cart!"))
+          .catch(() => toast.error("Failed to add to cart"));
+        return;
+      }
 
-      // Create flying clone
-      const clone = productImage.cloneNode(true);
+      // Get positions
       const imgRect = productImage.getBoundingClientRect();
       const cartRect = cartIcon.getBoundingClientRect();
 
+      // Create flying clone with improved styling
+      const clone = productImage.cloneNode(true);
       Object.assign(clone.style, {
         position: "fixed",
         left: imgRect.left + "px",
         top: imgRect.top + "px",
         width: imgRect.width + "px",
         height: imgRect.height + "px",
+        objectFit: "cover",
         borderRadius: "8px",
-        transition:
-          "all 0.8s cubic-bezier(0.4, 0.7, 0.2, 1.1), opacity 0.8s",
         zIndex: 9999,
         pointerEvents: "none",
         opacity: 1,
+        boxShadow: "0 8px 20px rgba(0,0,0,0.3)",
+        transition: "all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       });
       document.body.appendChild(clone);
 
+      // Calculate distance to cart
+      const translateX = cartRect.left + (cartRect.width / 2) - (imgRect.width / 2) - imgRect.left;
+      const translateY = cartRect.top + (cartRect.height / 2) - (imgRect.height / 2) - imgRect.top;
+
+      // Animate towards cart
       requestAnimationFrame(() => {
-        clone.style.transform = `translate3d(
-          ${cartRect.left - imgRect.left}px,
-          ${cartRect.top - imgRect.top}px,
-          0
-        ) scale(0.2) rotate(25deg)`;
-        clone.style.opacity = 0.1;
+        clone.style.transform = `translate(${translateX}px, ${translateY}px) scale(0.15) rotate(15deg)`;
+        clone.style.opacity = "0.8";
       });
 
       setTimeout(() => {
+        // Remove clone
         clone.remove();
 
         // Bounce animation on cart icon
         cartIcon.classList.add("cart-bounce");
         setTimeout(() => cartIcon.classList.remove("cart-bounce"), 600);
 
+        // Add to cart after animation
         addToCart(product._id, 1)
           .then(() => {
             sessionStorage.setItem("cartAnimation", product.name);
           })
           .catch(() => toast.error("Failed to add to cart"));
-      }, 850);
+      }, 600);
     },
     [addToCart, navigate, product]
   );

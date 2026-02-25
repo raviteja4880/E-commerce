@@ -1,13 +1,13 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Lock } from "lucide-react";
+import "../styles/RequireLogin.css";
 
 export default function RequireLogin({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const userInfo = JSON.parse(localStorage.getItem("userInfo"));
 
-  // Extract page name from pathname
   const getPageName = () => {
     const path = location.pathname.toLowerCase();
     if (path.includes("cart")) return "cart";
