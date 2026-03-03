@@ -1,10 +1,10 @@
 import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Cropper from "react-easy-crop";
 import { authAPI } from "../services/api";
 import { toast } from "react-toastify";
-import { Loader2, LogOut, Settings, Camera, User, Lock } from "lucide-react";
+import { Loader2, Camera, User, Lock, LogOut } from "lucide-react";
 import RequireLogin from "../components/RequireLogin";
 import "../styles/profile.css";
 
@@ -95,12 +95,10 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
     navigate("/login", { replace: true });
   };
   
-  const dropdownRef = useRef(null);
   const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
 
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -153,17 +151,6 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
     };
 
     if (userInfo?.token) fetchProfile();
-  }, []);
-
-  /* CLOSE DROPDOWN */
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
   }, []);
 
   /* UPDATE PROFILE */
@@ -240,56 +227,100 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
   return (
     <div className="min-vh-100 py-5" style={{ background: "#eaf6ff" }}>
       <div className="container" style={{ maxWidth: 760 }}>
-        <div className="card shadow border-0 rounded-4">
-          <div className="card-body p-4">
-
-            {/* ================= HEADER ================= */}
-            <div className="d-flex justify-content-between mb-3">
-              <h4 className="text-primary">My Profile</h4>
-
-              <div ref={dropdownRef}>
-                <button
-                  className="btn btn-light rounded-circle"
-                  onClick={() => setShowDropdown(!showDropdown)}
-                >
-                  <Settings size={20} />
-                </button>
-
-                {showDropdown && (
-                  <div className="dropdown-menu show end-0 mt-2 shadow rounded-4">
-                    <button className="dropdown-item" onClick={() => setActiveTab("edit")}>
-                      <User size={16} /> Edit Profile
-                    </button>
-                    <button className="dropdown-item" onClick={() => setActiveTab("avatar")}>
-                      <Camera size={16} /> Change Avatar
-                    </button>
-                    <button className="dropdown-item" onClick={() => setActiveTab("password")}>
-                      <Lock size={16} /> Change Password
-                    </button>
-                    <div className="dropdown-divider" />
-                    <button className="dropdown-item text-danger" onClick={handleLogout}>
-                      <LogOut size={16} /> Logout
-                    </button>
-                  </div>
-                )}
-              </div>
+        <div className="card shadow border-0 rounded-4 position-relative">
+          {saving && (
+            <div className="save-overlay d-flex justify-content-center align-items-center">
+              <Loader2 className="animate-spin" size={36} />
+            </div>
+          )}
+          <div className="card-body p-4 position-relative">
+            {/* ================= LOGOUT BUTTON ================= */}
+            <div className="logout-btn-wrapper">
+              <button
+                className="btn btn-outline-danger btn-sm"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} className="me-1" /> Logout
+              </button>
             </div>
 
             {/* ================= FIXED PROFILE HEADER ================= */}
-            <div className="text-center mb-4">
-              <img
-                src={getAvatarSrc()}
-                width={120}
-                height={120}
-                className="rounded-circle shadow"
-              />
-              <h5 className="mt-3">{formData.name}</h5>
-              <p className="text-muted">{formData.email}</p>
+            <div className="profile-header-section">
+              <div className="avatar-section">
+                <img
+                  src={getAvatarSrc()}
+                  width={120}
+                  height={120}
+                  className="rounded-circle shadow"
+                />
+                <div
+                  className="avatar-overlay"
+                  onClick={() => setActiveTab("avatar")}
+                >
+                  <Camera size={20} />
+                </div>
+              </div>
+              <h5 className="user-name">{formData.name}</h5>
+              <p className="user-email text-muted">{formData.email}</p>
+            </div>
+
+            {/* ================= DIVIDER ================= */}
+            <hr className="my-4" />
+
+            {/* ================= TABS ================= */}
+            <div className="profile-tabs mb-4">
+              <button
+                className={`tab-btn ${activeTab === "profile" ? "active" : ""}`}
+                onClick={() => setActiveTab("profile")}
+              >
+                <User size={16} className="me-1" /> Profile
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "edit" ? "active" : ""}`}
+                onClick={() => setActiveTab("edit")}
+              >
+                <User size={16} className="me-1" /> Edit
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "password" ? "active" : ""}`}
+                onClick={() => setActiveTab("password")}
+              >
+                <Lock size={16} className="me-1" /> Password
+              </button>
+              <button
+                className={`tab-btn ${activeTab === "avatar" ? "active" : ""}`}
+                onClick={() => setActiveTab("avatar")}
+              >
+                <Camera size={16} className="me-1" /> Avatar
+              </button>
             </div>
 
             {/* ================= TAB CONTENT ================= */}
+            {activeTab === "profile" && (
+              <div className="profile-info-section">
+                <div className="info-row">
+                  <label>Name</label>
+                  <span>{formData.name}</span>
+                </div>
+                <div className="info-row">
+                  <label>Email</label>
+                  <span>{formData.email}</span>
+                </div>
+                <div className="info-row">
+                  <label>Phone</label>
+                  <span>{formData.phone || "-"}</span>
+                </div>
+                <button
+                  className="btn btn-primary w-100 mt-4"
+                  onClick={() => setActiveTab("edit")}
+                >
+                  Edit Profile
+                </button>
+              </div>
+            )}
+
             {activeTab === "edit" && (
-              <>
+              <div className="form-section">
                 <input
                   className="form-control mb-3"
                   placeholder="Full Name"
@@ -299,21 +330,21 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
                   }
                 />
                 <input
-                  className="form-control"
+                  className="form-control mb-4"
                   placeholder="Phone"
                   value={formData.phone}
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
                 />
-              </>
+              </div>
             )}
 
             {activeTab === "password" && (
-              <>
+              <div className="form-section">
                 <input
                   type="password"
-                  className="form-control mb-3"
+                  className="form-control"
                   placeholder="Current Password"
                   value={passwords.currentPass}
                   onChange={(e) =>
@@ -323,7 +354,7 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
 
                 <input
                   type="password"
-                  className="form-control mb-3"
+                  className="form-control"
                   placeholder="New Password"
                   value={passwords.newPass}
                   onChange={(e) =>
@@ -340,21 +371,21 @@ const getCroppedImage = async (imageSrc, cropPixels) => {
                     setPasswords({ ...passwords, confirm: e.target.value })
                   }
                 />
-              </>
+              </div>
             )}
 
             {activeTab === "avatar" && (
-              <div className="text-center">
+              <div className="form-section text-center">
                 <button
-                  className="btn btn-outline-primary mb-2"
+                  className="btn btn-primary w-100 mb-3"
                   onClick={() => document.getElementById("avatarInput").click()}
                 >
-                  Change Avatar
+                  <Camera size={18} className="me-2" /> Change Avatar
                 </button>
 
                 {hasAvatar && (
                   <button
-                    className="btn btn-outline-danger d-block mx-auto"
+                    className="btn btn-outline-danger w-100"
                     onClick={async () => {
                       try {
                         setSaving(true);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -9,6 +9,7 @@ import {
 import Navbar from "./components/Navbar";
 import MobileBottomNav from "./components/MobileBottomNav";
 import SplashScreen from "./components/SplashScreen";
+import ScrollingBanner from "./components/ScrollingBanner";
 import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
@@ -23,6 +24,7 @@ import MyOrdersPage from "./pages/MyOrdersPage";
 import CategoriesPage from "./pages/CategoriesPage";
 
 import { CartProvider } from "./context/CartContext";
+import { LoadingProvider, LoadingContext } from "./context/LoadingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { ToastContainer } from "react-toastify";
@@ -97,15 +99,19 @@ function SEOWrapper({ children, seo }) {
 
 function Layout({ children }) {
   const location = useLocation();
+  const { isProductsLoading } = useContext(LoadingContext);
 
   const isAuthPage = location.pathname === "/login";
   const loggedIn = !!localStorage.getItem("userInfo");
   const isMobile = window.innerWidth < 768;
 
   const showFooter = !loggedIn && !isMobile;
+  // don't show banner while on the authentication (login) page
+  const showBanner = !loggedIn && isProductsLoading && !isAuthPage;
 
   return (
     <>
+      {showBanner && <ScrollingBanner show={true} />}
       {!isAuthPage && <Navbar />}
       {children}
       {!isAuthPage && <MobileBottomNav />}
@@ -135,25 +141,27 @@ function App() {
   }
 
   return (
-    <CartProvider>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<SEOWrapper seo={{ title: "MyStorX — Best Online Shopping Store" }}><Home /></SEOWrapper>} />
-            <Route path="/product/:id" element={<SEOWrapper seo={{ title: "Product Details - MyStorX" }}><ProductDetails /></SEOWrapper>} />
-            <Route path="/login" element={<SEOWrapper seo={{ title: "Login - MyStorX" }}><Login /></SEOWrapper>} />
-            <Route path="/categories" element={<SEOWrapper seo={{ title: "Shop by Category - MyStorX", description: "Browse our wide range of product categories" }}><CategoriesPage /></SEOWrapper>} />
-            <Route path="/cart" element={<SEOWrapper seo={{ title: "Shopping Cart - MyStorX" }}><Cart /></SEOWrapper>} />
-            <Route path="/profile" element={<SEOWrapper seo={{ title: "My Profile - MyStorX" }}><ProfilePage /></SEOWrapper>} />
-            <Route path="/my-orders" element={<SEOWrapper seo={{ title: "My Orders - MyStorX", description: "Track your order history" }}><MyOrdersPage /></SEOWrapper>} />
-            <Route path="/checkout" element={<ProtectedRoute><SEOWrapper seo={{ title: "Checkout - MyStorX" }}><CheckoutPage /></SEOWrapper></ProtectedRoute>} />
-            <Route path="/payment/:orderId" element={<ProtectedRoute><SEOWrapper seo={{ title: "Payment - MyStorX" }}><PaymentPage /></SEOWrapper></ProtectedRoute>} />
-            <Route path="/order-success/:orderId" element={<ProtectedRoute><SEOWrapper seo={{ title: "Order Confirmed - MyStorX" }}><OrderDetails /></SEOWrapper></ProtectedRoute>} />
-          </Routes>
-        </Layout>
-        <ToastContainer position="top-right" theme="colored" />
-      </Router>
-    </CartProvider>
+    <LoadingProvider>
+      <CartProvider>
+        <Router>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<SEOWrapper seo={{ title: "MyStorX — Best Online Shopping Store" }}><Home /></SEOWrapper>} />
+              <Route path="/product/:id" element={<SEOWrapper seo={{ title: "Product Details - MyStorX" }}><ProductDetails /></SEOWrapper>} />
+              <Route path="/login" element={<SEOWrapper seo={{ title: "Login - MyStorX" }}><Login /></SEOWrapper>} />
+              <Route path="/categories" element={<SEOWrapper seo={{ title: "Shop by Category - MyStorX", description: "Browse our wide range of product categories" }}><CategoriesPage /></SEOWrapper>} />
+              <Route path="/cart" element={<SEOWrapper seo={{ title: "Shopping Cart - MyStorX" }}><Cart /></SEOWrapper>} />
+              <Route path="/profile" element={<SEOWrapper seo={{ title: "My Profile - MyStorX" }}><ProfilePage /></SEOWrapper>} />
+              <Route path="/my-orders" element={<SEOWrapper seo={{ title: "My Orders - MyStorX", description: "Track your order history" }}><MyOrdersPage /></SEOWrapper>} />
+              <Route path="/checkout" element={<ProtectedRoute><SEOWrapper seo={{ title: "Checkout - MyStorX" }}><CheckoutPage /></SEOWrapper></ProtectedRoute>} />
+              <Route path="/payment/:orderId" element={<ProtectedRoute><SEOWrapper seo={{ title: "Payment - MyStorX" }}><PaymentPage /></SEOWrapper></ProtectedRoute>} />
+              <Route path="/order-success/:orderId" element={<ProtectedRoute><SEOWrapper seo={{ title: "Order Confirmed - MyStorX" }}><OrderDetails /></SEOWrapper></ProtectedRoute>} />
+            </Routes>
+          </Layout>
+          <ToastContainer position="top-right" theme="colored" />
+        </Router>
+      </CartProvider>
+    </LoadingProvider>
   );
 }
 

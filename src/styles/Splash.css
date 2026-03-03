@@ -25,6 +25,20 @@
   width: 90px;
   height: 90px;
   margin-bottom: 16px;
+  animation: spin 2.5s ease-in-out 1;
+}
+
+/* Spinning animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  60% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Title */

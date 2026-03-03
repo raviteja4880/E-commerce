@@ -45,8 +45,6 @@ function CheckoutPage() {
             `https://us1.locationiq.com/v1/reverse.php?key=pk.ddf94865508fa900df1c5c04e8e973b6&lat=${latitude}&lon=${longitude}&format=json`
           );
 
-          const data = await res.json();
-          console.log("LocationIQ Response:", data);
 
           if (!data || !data.address) {
             toast.dismiss(loadingToast);

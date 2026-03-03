@@ -4,10 +4,12 @@ import React, {
   useCallback,
   useMemo,
   Suspense,
+  useContext,
 } from "react";
 import { productAPI, recommendationAPI } from "../services/api";
 import { useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
+import { LoadingContext } from "../context/LoadingContext";
 import "../styles/scrollMessage.css";
 import SkeletonProductCard from "../components/SkeletonProductCard";
 import { getStableUserKey, seededShuffle } from "../utils/helpers";
@@ -30,11 +32,19 @@ function Home() {
   const [recsInitialized, setRecsInitialized] = useState(false);
 
   const location = useLocation();
+  const { setProductsLoading } = useContext(LoadingContext);
   const queryParams = new URLSearchParams(location.search);
   const selectedCategory = queryParams.get("category");
   const isCategorySelected = Boolean(selectedCategory);
 
   const userInfo = localStorage.getItem("userInfo");
+
+  // Track banner display start time
+  useEffect(() => {
+    // Mark when loading started
+    sessionStorage.setItem("loadingStartTime", Date.now().toString());
+    setProductsLoading(true);
+  }, [setProductsLoading]);
 
   // ================= FETCH PRODUCTS =================
   const fetchProducts = useCallback(async () => {
@@ -81,14 +91,22 @@ function Home() {
     setGroupedProducts(finalGrouped);
     setFilteredProducts(finalGrouped);
 
+    // success path: hide banner immediately after products load
+    setLoading(false);
+    setProductsLoading(false);
+    if (!userInfo) setShowBanner(false);
+
     } catch (err) {
       console.error("Products fetch error:", err.response?.data || err.message);
       setError("Failed to load products.");
-    } finally {
       setLoading(false);
-      if (!userInfo) setTimeout(() => setShowBanner(false));
+      // do NOT clear products loading so banner stays
+      // retry after delay
+      setTimeout(() => {
+        fetchProducts();
+      }, 5000);
     }
-  }, [selectedCategory, userInfo]);
+  }, [selectedCategory, userInfo, setProductsLoading]);
 
   // ================= SCROLL POSITION =================
   useEffect(() => {
@@ -113,39 +131,38 @@ function Home() {
     let cancelled = false;
 
     const fetchRecommendations = async () => {
-  setLoadingHomeRecs(true);
+      setLoadingHomeRecs(true);
 
-  try {
-    const userKey = getStableUserKey();
+      try {
+        const userKey = getStableUserKey();
 
-    // Try cart-based ML first
-    const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
-    const cartExternalIds = cart
-      .map((item) => item.product?.externalId)
-      .filter(Boolean);
+        // Try cart-based ML first
+        const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
+        const cartExternalIds = cart
+          .map((item) => item.product?.externalId)
+          .filter(Boolean);
 
-    if (cartExternalIds.length > 0) {
-      const res = await recommendationAPI.getByCart(cartExternalIds);
-      if (!cancelled && res.data?.length) {
-        setHomeRecommendations(res.data);
-        return;
+        if (cartExternalIds.length > 0) {
+          const res = await recommendationAPI.getByCart(cartExternalIds);
+          if (!cancelled && res.data?.length) {
+            setHomeRecommendations(res.data);
+            return;
+          }
+        }
+
+        // Fallback → HOME recommendations (Node + ML)
+        const res = await recommendationAPI.getHome(userKey);
+        if (!cancelled) {
+          setHomeRecommendations(res.data || []);
+        }
+      } catch (err) {
+        console.error("Home recommendation error:", err.message);
+      } finally {
+        if (!cancelled) {
+          setLoadingHomeRecs(false);
+        }
       }
-    }
-
-    // Fallback → HOME recommendations (Node + ML)
-    const res = await recommendationAPI.getHome(userKey);
-    if (!cancelled) {
-      setHomeRecommendations(res.data || []);
-    }
-  } catch (err) {
-    console.error("Home recommendation error:", err.message);
-  } finally {
-    if (!cancelled) {
-      setLoadingHomeRecs(false);
-      setRecsInitialized(true);
-    }
-  }
-};
+    };
 
     fetchRecommendations();
     return () => (cancelled = true);
@@ -286,22 +303,6 @@ function Home() {
       )}
 
       {/* ================= EXISTING UI ================= */}
-      {!userInfo && showBanner && (
-        <div className="scrolling-banner-container">
-          <div className="scrolling-banner text-center fw-semibold">
-            <div className="scrolling-text">
-              <span>
-                Backend is waking up... Please wait a few seconds while we load
-                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
-              </span>
-              <span>
-                Backend is waking up... Please wait a few seconds while we load
-                the products. Thank you for your patience. &nbsp;&nbsp;&nbsp;
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {loading && (
         <div className="d-flex justify-content-center align-items-center mt-5">

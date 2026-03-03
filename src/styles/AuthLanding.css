@@ -171,6 +171,38 @@
   text-decoration: underline;
 }
 
+/* flower rain animation */
+.flower-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.flower {
+  position: absolute;
+  top: -40px;
+  font-size: 1.25rem; /* slightly smaller to reduce clutter */
+  animation-name: fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .auth-card {

@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import "../styles/AuthLanding.css";
 
 const OTP_DURATION = 120; // 2 minutes
+const RESEND_DELAY = 30; // seconds before user can request a new OTP
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function Login() {
   const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
+  const [showFlowers, setShowFlowers] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -77,6 +79,9 @@ export default function Login() {
         });
 
         toast.success("OTP sent to your email");
+        // trigger celebratory animation for new user
+        setShowFlowers(true);
+        setTimeout(() => setShowFlowers(false), 5000);
         setMode("otp");
       }
 
@@ -128,7 +133,8 @@ export default function Login() {
 
   /* ================= RESEND OTP ================= */
   const handleResendOtp = async () => {
-    if (!form.email || otpTimer > 0) return;
+    // do not allow resend until RESEND_DELAY seconds have elapsed
+    if (!form.email || otpTimer > OTP_DURATION - RESEND_DELAY) return;
 
     const purpose = mode === "otp" ? "register" : "reset_password";
 
@@ -144,8 +150,39 @@ export default function Login() {
     }
   };
 
+  // component that renders falling flowers
+  const FlowerRain = () => {
+    const flowerEmojis = ["🌸", "🌼", "🌺", "🌻"];
+    const petals = Array.from({ length: 60 }).map((_, i) => {
+      const left = Math.random() * 100;
+      const duration = Math.random() * 3 + 2;
+      const delay = Math.random() * 5;
+      const emoji = flowerEmojis[Math.floor(Math.random() * flowerEmojis.length)];
+      return { id: i, left, duration, delay, emoji };
+    });
+
+    return (
+      <div className="flower-container">
+        {petals.map((p) => (
+          <div
+            key={p.id}
+            className="flower"
+            style={{
+              left: `${p.left}%`,
+              animationDuration: `${p.duration}s`,
+              animationDelay: `${p.delay}s`,
+            }}
+          >
+            {p.emoji}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="auth-wrapper">
+      {showFlowers && <FlowerRain />}
       <motion.div
         className="auth-card"
         initial={{ opacity: 0, y: 30 }}
@@ -249,16 +286,21 @@ export default function Login() {
           <p className="toggle-text">
             OTP expires in <strong>{formatTime(otpTimer)}</strong>
             {" · "}
-            {otpTimer > 0 ? (
-              <span style={{ opacity: 0.5 }}>Resend</span>
-            ) : (
-              <span
-                onClick={handleResendOtp}
-                style={{ cursor: "pointer" }}
-              >
-                Resend
-              </span>
-            )}
+            {
+              // calculate whether the user has waited enough to resend
+              otpTimer > OTP_DURATION - RESEND_DELAY ? (
+                <span style={{ opacity: 0.5 }}>
+                  Resend in {formatTime(otpTimer - (OTP_DURATION - RESEND_DELAY))}
+                </span>
+              ) : (
+                <span
+                  onClick={handleResendOtp}
+                  style={{ cursor: "pointer" }}
+                >
+                  Resend
+                </span>
+              )
+            }
           </p>
         )}
 

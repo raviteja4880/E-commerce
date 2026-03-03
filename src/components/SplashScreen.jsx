@@ -18,17 +18,17 @@ export default function SplashScreen() {
         transition={{ duration: 1.2, ease: "easeOut" }}
       />
 
-      {/* Logo */}
+      {/* Logo with spinning animation */}
       <motion.img
         src="/favicon.ico"
         alt="MyStorX"
         className="brand-logo"
         initial={{ rotate: -15, scale: 0 }}
-        animate={{ rotate: 0, scale: 1 }}
+        animate={{ rotate: [0, 360, 360], scale: 1 }}
         transition={{
-          type: "spring",
-          stiffness: 120,
-          damping: 10,
+          duration: 2.5,
+          times: [0, 0.6, 1],
+          ease: "easeInOut",
         }}
       />
 
