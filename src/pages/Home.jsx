@@ -136,7 +136,6 @@ function Home() {
       try {
         const userKey = getStableUserKey();
 
-        // Try cart-based ML first
         const cart = JSON.parse(localStorage.getItem("cartItems")) || [];
         const cartExternalIds = cart
           .map((item) => item.product?.externalId)
@@ -146,14 +145,15 @@ function Home() {
           const res = await recommendationAPI.getByCart(cartExternalIds);
           if (!cancelled && res.data?.length) {
             setHomeRecommendations(res.data);
+            setRecsInitialized(true);
             return;
           }
         }
 
-        // Fallback → HOME recommendations (Node + ML)
         const res = await recommendationAPI.getHome(userKey);
         if (!cancelled) {
           setHomeRecommendations(res.data || []);
+          setRecsInitialized(true); 
         }
       } catch (err) {
         console.error("Home recommendation error:", err.message);
